@@ -24,11 +24,9 @@ def extract_cdr_data():
         df = pd.read_sql(query, engine)
 
         print(f"[EXTRACT] {len(df)} registros extraídos da tabela cdr.")
-        print(df.head())
+        # print(df.head())
         return df
 
     except Exception as e:
         print(f"[ERRO] Falha ao extrair dados: {e}")
         return None
-
-extract_cdr_data()
