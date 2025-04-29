@@ -14,5 +14,8 @@ df_with_no_useless_cols = remove_columns(df, useless_cols)
 # Extract the name on clid and puts on a new column called 'chamador'
 df_with_no_useless_cols['chamador'] = df_with_no_useless_cols['clid'].apply(extract_name)
 
+# Remove the column clid
+df_with_no_useless_cols = remove_columns(df_with_no_useless_cols, ['clid'])
+
 print(df_with_no_useless_cols)
 # print(df_clean.info())
