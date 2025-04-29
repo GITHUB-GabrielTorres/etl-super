@@ -1,10 +1,9 @@
 import pandas as pd
 
-
-def remove_columns(df: pd.DataFrame) -> pd.DataFrame:
+def remove_columns(df: pd.DataFrame, columns_to_delete) -> pd.DataFrame:
     """Aplica as transformações necessárias no dataframe."""
     
-    df = df.drop(columns=['tipo_agente','agente', 'ddr', 'cod_perfil', 'src', 'agente_src', 'captura_dst', 'agente_dst', 'captura_agente_dst', 'channel', 'dstchannel', 'lastdata', 'amaflags', 'hang_tech', 'hang_ast'])
+    df = df.drop(columns=columns_to_delete)
     
     # Remover espaços em branco nos nomes das colunas
     # df.columns = df.columns.str.upper()

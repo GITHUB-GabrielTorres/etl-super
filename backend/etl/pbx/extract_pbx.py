@@ -23,7 +23,7 @@ def extract_cdr_data():
         # Extrai os dados para um DataFrame
         df = pd.read_sql(query, engine)
 
-        print(f"[EXTRACT] {len(df)} registros extraídos da tabela cdr.")
+        # print(f"[EXTRACT] {len(df)} registros extraídos da tabela cdr.")
         # print(df.head())
         return df
 
