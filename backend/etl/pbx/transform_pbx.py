@@ -1,27 +1,18 @@
 import pandas as pd
+import re
 
 def remove_columns(df: pd.DataFrame, columns_to_delete) -> pd.DataFrame:
     """Aplica as transformações necessárias no dataframe."""
     
     df = df.drop(columns=columns_to_delete)
-    
-    # Remover espaços em branco nos nomes das colunas
-    # df.columns = df.columns.str.upper()
-
-    # # Padronizar string: tirar espaços, colocar minúsculo
-    # if 'nome' in df.columns:
-    #     df['nome'] = df['nome'].str.strip().str.lower()
-
-    # # Corrigir formatos de data
-    # if 'data' in df.columns:
-    #     df['data'] = pd.to_datetime(df['data'], errors='coerce')
-
-    # # Preencher valores nulos
-    # df.fillna({
-    #     'idade': 0,
-    #     'nome': 'desconhecido',
-    #     'ddr': 'NA'
-    # }, inplace=True)
 
     return df
 
+def extract_name(item):
+    match = re.search(r'"([^"]+)"', item)
+
+    if match:
+        resultado = match.group(1)
+        if resultado.isdigit():
+            resultado = ""
+        return resultado

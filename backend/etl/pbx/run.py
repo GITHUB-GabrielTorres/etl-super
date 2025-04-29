@@ -1,7 +1,7 @@
 import pandas as pd
 
 from extract_pbx import extract_cdr_data
-from transform_pbx import remove_columns
+from transform_pbx import remove_columns, extract_name
 
 # Extrair
 df = extract_cdr_data()
@@ -11,6 +11,8 @@ df = extract_cdr_data()
 useless_cols = ['tipo_agente','agente', 'ddr', 'cod_perfil', 'src', 'agente_src', 'captura_dst', 'agente_dst', 'captura_agente_dst', 'channel', 'dstchannel', 'lastdata', 'amaflags', 'hang_tech', 'hang_ast', 'uradigito','hang_code','linkedid','sequence','accountcode','peeraccount','uniqueid','userfield','trunkin','billsec','lastapp','tipo_agente']
 df_with_no_useless_cols = remove_columns(df, useless_cols)
 
+# Extract the name on clid and puts on a new column called 'chamador'
+df_with_no_useless_cols['chamador'] = df_with_no_useless_cols['clid'].apply(extract_name)
 
-print(df_with_no_useless_cols.info())
+print(df_with_no_useless_cols)
 # print(df_clean.info())
