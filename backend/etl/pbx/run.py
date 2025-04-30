@@ -1,7 +1,7 @@
 import pandas as pd
 
 from extract_pbx import extract_cdr_data
-from transform_pbx import remove_columns, extract_name
+from transform_pbx import remove_columns, extract_name, remove_values
 
 # Extrair
 df = extract_cdr_data()
@@ -29,5 +29,8 @@ df_new_columns_names = df_with_no_useless_cols.rename(columns={
     'monitor':'gravacao'
 })
 
-print(df_new_columns_names)
+# Remove em Protocolo o que for vazio
+df = remove_values(df_new_columns_names, 'protocolo', [''])
+
+print(df)
 # print(df_clean.info())

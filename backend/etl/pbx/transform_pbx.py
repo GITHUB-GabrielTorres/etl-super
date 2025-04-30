@@ -16,3 +16,6 @@ def extract_name(item):
         if resultado.isdigit():
             resultado = ""
         return resultado
+
+def remove_values(df: pd.DataFrame, column_name: str, items_to_remove: list) -> pd.DataFrame:
+    return df[~df[column_name].isin(items_to_remove)]
