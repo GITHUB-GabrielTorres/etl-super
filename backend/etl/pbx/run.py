@@ -8,7 +8,7 @@ df = extract_cdr_data()
 
 """ TRATAMENTO DOS DADOS """
 # Remove useless columns
-useless_cols = ['tipo_agente','agente', 'ddr', 'cod_perfil', 'src', 'agente_src', 'captura_dst', 'agente_dst', 'captura_agente_dst', 'channel', 'dstchannel', 'lastdata', 'amaflags', 'hang_tech', 'hang_ast', 'uradigito','hang_code','linkedid','sequence','accountcode','peeraccount','uniqueid','userfield','trunkin','billsec','lastapp','tipo_agente']
+useless_cols = ['tipo_agente','agente', 'ddr', 'cod_perfil', 'src', 'agente_src', 'captura_dst', 'agente_dst', 'captura_agente_dst', 'channel', 'dstchannel', 'lastdata', 'amaflags', 'hang_tech', 'hang_ast', 'uradigito','hang_code','linkedid','sequence','accountcode','peeraccount','uniqueid','userfield','trunkin','billsec','lastapp','tipo_agente', 'monitor']
 df_with_no_useless_cols = remove_columns(df, useless_cols)
 
 # Extract the name on clid and puts on a new column called 'chamador'
@@ -30,7 +30,12 @@ df_new_columns_names = df_with_no_useless_cols.rename(columns={
 })
 
 # Remove em Protocolo o que for vazio
-df = remove_values(df_new_columns_names, 'protocolo', [''])
+df_no_empty_protocol = remove_values(df_new_columns_names, 'protocolo', [''])
 
-print(df)
-# print(df_clean.info())
+# Remove os duplicados (caso todas colunas tenham os mesmos valores)
+df_no_duplicates = df_no_empty_protocol.drop_duplicates(keep='first')
+
+# Insere uma PK unindo Protocolo, Data de contato e Status
+df_no_duplicates['codigo_unico'] = (df_no_duplicates['protocolo'] + str(df_no_duplicates['data_de_contato']) + df_no_duplicates['status'])
+
+print(df_no_duplicates)
