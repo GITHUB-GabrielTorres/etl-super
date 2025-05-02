@@ -2,6 +2,7 @@ import pandas as pd
 
 from extract_pbx import extract_cdr_data
 from transform_pbx import remove_columns, extract_name, remove_values
+from load_pbx import carregamento_dos_dados
 
 """ Execução do Processo de ETL com a entidade CDR do PBX """
 def processar_dados_pbx_cdr():
@@ -52,3 +53,6 @@ def processar_dados_pbx_cdr():
 
 # Executa o processo de transformação dos dados
 df_tratado = processar_dados_pbx_cdr()
+
+# Executa o carregamento dos dados no DW
+carregamento_dos_dados(df_tratado)
