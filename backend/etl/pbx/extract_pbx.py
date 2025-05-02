@@ -18,7 +18,20 @@ def extract_cdr_data():
         engine = create_engine(connection_url)
 
         # Consulta SQL
-        query = "SELECT * FROM cdr"
+        query = """
+            SELECT DISTINCT
+                protocolo,
+                calldate,
+                clid,
+                callerid,
+                dst,
+                dcontext,
+                duration,
+                disposition,
+                trunkout
+            FROM cdr
+            WHERE protocolo <> '';
+        """
 
         # Extrai os dados para um DataFrame
         df = pd.read_sql(query, engine)

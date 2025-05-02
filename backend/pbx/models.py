@@ -2,8 +2,9 @@ from django.db import models
 
 class ContatosPBX(models.Model):
 
+    codigo_unico = models.CharField(max_length=250, primary_key=True)
     protocolo = models.CharField(max_length=150)
-    data_de_contato = models.DateTimeField(null=True, blank=True)
+    data_de_contato = models.DateTimeField(null=True, blank=True, db_index=True)
     quem_ligou = models.CharField(max_length=150, null=True, blank=True)
     quem_recebeu_ligacao = models.CharField(max_length=150, null=True, blank=True)
     grupo_discagem_saida = models.CharField(max_length=150, null=True, blank=True)
