@@ -11,7 +11,6 @@ class ContatosPBX(models.Model):
     duracao_em_segundos = models.IntegerField(null=True, blank=True)
     status = models.CharField(max_length=150, null=True, blank=True)
     nome_do_tronco = models.CharField(max_length=150, null=True, blank=True)
-    gravacao = models.CharField(max_length=150, null=True, blank=True)
     chamador = models.CharField(max_length=150, null=True, blank=True)
 
     def __str__(self):
