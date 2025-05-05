@@ -1,0 +1,3 @@
+// Faz uma modelagem mais geral, refazendo as informações do df, para alteração de nomes de colunas ou mudança dos tipos (um date virar realmente um date)
+// 	Desmontam e remontam peças brutas
+// Ele pega o df inteiro, ou todo um conjunto de dados, e ajusta ele de uma forma mais geral. Se eu tenho um df com nome, email, data de nascimento e cidade de origem com o estado, eu posso pegar e alterar esses dados para garantir que nome seja string, email seja string, data de nascimento seja realmente um objeto date, cidade de origem com o estado se transforme em dois campos, um com a cidade e outro com o uf.

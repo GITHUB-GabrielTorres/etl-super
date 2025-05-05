@@ -1,0 +1,1 @@
+//  Aqui serão funções independentes para tratamento de dados. Como deixar a data bem formatada, ou arrumar um valor monetário.

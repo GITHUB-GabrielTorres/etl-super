@@ -35,6 +35,7 @@ def get_ultima_data_contato():
         with conn.cursor() as cur:
             cur.execute("SELECT MAX(data_de_contato) FROM pbx_contatospbx;")
             result = cur.fetchone()[0]
+            # Essa diferença se dá em relação à última datetime de ligação existente atualmente, e não em relação a agora.
             result -= timedelta(hours=5)
             print(result)
             return result  # datetime ou None
