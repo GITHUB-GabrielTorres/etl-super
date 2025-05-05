@@ -1,29 +1,28 @@
 import { endpoints } from './endpoints.js';
 
-
-export async function GetLigacoesPorDia() {
+export async function GetLigacoesPorDia(inicio, fim) {
     try {
-        const response = await fetch(endpoints.contatos.list_day, {
+        const response = await fetch(`${endpoints.contatos.list_day}?data_inicio=${inicio}` + (fim ? `&data_fim=${fim}` : ''), {
             method: 'GET',
             headers: {
-            'Accept': 'application/json'
+                'Accept': 'application/json'
             }
         });
 
-        // Verifica se a resposta é OK (status 200–299)
         if (!response.ok) {
             throw new Error(`Erro HTTP: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Dados recebidos:', data);
         return data;
 
     } catch (error) {
         console.error('Erro ao buscar os dados:', error.message);
-        return null; // ou pode lançar o erro para tratamento externo
+        return null;
     }
 }
 
-// Exemplo de uso
-console.log(GetLigacoesPorDia())
+GetLigacoesPorDia('2025-04-01')
+    .then(resultado => {
+        console.log('Resultado com then:', resultado);
+    })

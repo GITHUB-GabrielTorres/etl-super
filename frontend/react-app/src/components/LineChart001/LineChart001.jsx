@@ -3,68 +3,68 @@ import React, { useEffect, useState } from 'react'
 
 import { GetLigacoesPorDia } from '../../services/api'
 
-export default function LineChart001() {
-
-  const [dados, setDados] = useState([]);
+export default function LineChart001({ inicio, fim }) {
+  const [dados, setDados] = useState([])
 
   useEffect(() => {
-    GetLigacoesPorDia().then((resposta) => {
-      setDados(resposta)
-      console.log('e: ' + resposta)
+    if (!inicio || !fim) return; // evita chamadas sem datas definidas
+
+    GetLigacoesPorDia(inicio, fim).then((resposta) => {
+      const convertido = resposta.map(item => ({
+        x: item.dia,
+        y: item.quantidade
+      }))
+      setDados(convertido)
+    }).catch((error) => {
+      console.error('Erro ao buscar dados:', error)
+      setDados([]) // limpa dados em caso de erro
     })
-  }, [])
+  }, [inicio, fim]) // <- agora ele atualiza quando as props mudam
 
   const data = [
     {
       id: "Quantidade",
       data: dados
     }
-  ];
+  ]
 
   return (
-    <div className="h-[400px] bg-white p-4 rounded-xl text-black w-250 shadow-md">
+    <div className="h-full w-full">
       <ResponsiveLine
         data={data}
-        margin={{ top: 20, right: 30, bottom: 50, left: 40 }}
+        margin={{ top: 20, right: 10, bottom: 50, left: 45 }}
+        curve="monotoneX"
         xScale={{ type: 'point' }}
-        yScale={{
-          type: 'linear',
-          min: 'auto',
-          max: 'auto',
-          stacked: false,
-          reverse: false
-        }}
+        yScale={{ type: 'linear' }}
         axisBottom={{
-          tickRotation: -20,
-          legend: 'Data',
-          legendOffset: 36,
+          tickRotation: -25,
           legendPosition: 'middle'
         }}
-        axisLeft={{
-          legend: 'Quantidade',
-          legendOffset: -30,
-          legendPosition: 'middle'
-        }}
-        colors={{ scheme: 'category10' }}
-        pointSize={8}
-        pointColor="#ffffff"
+        colors={['#fff', '#60a5fa', '#34d399']}
+        pointSize={6}
         pointBorderWidth={2}
         pointBorderColor={{ from: 'serieColor' }}
         useMesh={true}
         theme={{
-          textColor: '#1f2937', // gray-800
+          textColor: '#1f2937',
+          grid: {
+            line: {
+              stroke: '#fff2',
+              strokeWidth: 1
+            }
+          },
           tooltip: {
             container: {
-              background: '#f9fafb',
-              color: '#111827',
-              fontSize: 12,
+              background: '#f9fafb20',
+              color: '#444',
+              fontSize: 16,
               borderRadius: '6px',
-              padding: '6px 10px',
+              padding: '8px 12px',
               boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
             }
           }
         }}
       />
     </div>
-  );
+  )
 }
