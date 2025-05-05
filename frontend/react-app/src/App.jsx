@@ -1,17 +1,11 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './styles/App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+import LineChart001 from './components/LineChart001/LineChart001'
 
+function App() {
   return (
-    <div className='w-200 m-5'>
-      <p className='bg-amber-400 text-black font-bold text-8xl p-5 rounded-xl hover:bg-blue-700 duration-200 hover:text-white cursor-pointer'>Olá!</p>
-      <div>
-    </div>
-    </div>
+    <LineChart001/>
   )
 }
 
