@@ -1,7 +1,7 @@
 import { endpoints } from './endpoints.js';
 
 
-async function GetLigacoesPorDia() {
+export async function GetLigacoesPorDia() {
     try {
         const response = await fetch(endpoints.contatos.list_day, {
             method: 'GET',
