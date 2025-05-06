@@ -1,4 +1,5 @@
 import pandas as pd
+import time
 
 from extract_pbx import extract_cdr_data
 from transform_pbx import remove_columns, extract_name, remove_values
@@ -51,8 +52,8 @@ def processar_dados_pbx_cdr():
 
     return df_new_columns_names
 
-# Executa o processo de transformação dos dados
-df_tratado = processar_dados_pbx_cdr()
+    # Executa o processo de transformação dos dados
+    df_tratado = processar_dados_pbx_cdr()
 
-# Executa o carregamento dos dados no DW
-carregamento_dos_dados(df_tratado)
+    # Executa o carregamento dos dados no DW
+    carregamento_dos_dados(df_tratado)

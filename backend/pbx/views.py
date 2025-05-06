@@ -13,12 +13,17 @@ class ListaContatos(ListAPIView):
     queryset = ContatosPBX.objects.all()
     serializer_class = ContatosPBXSerializer
 
+# Isso é o que recebe a URL GET. Aqui se tratam os querysets, por exemplo.
 class LigacoesPorDiaView(APIView):
     def get(self, request):
         data_inicio = request.GET.get('data_inicio')
         data_fim = request.GET.get('data_fim')
+        chamadores = request.GET.getlist('chamador')
 
         queryset = ContatosPBX.objects.all()
+
+        if chamadores:
+            queryset = queryset.filter(chamador__in=chamadores)
 
         if data_inicio and data_fim:
             queryset = queryset.filter(data_de_contato__date__range=[data_inicio, data_fim])
