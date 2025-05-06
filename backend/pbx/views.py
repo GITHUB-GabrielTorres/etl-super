@@ -1,7 +1,7 @@
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from django.db.models.functions import TruncDate
-from django.db.models import Count
+from django.db.models import Count, Value, CharField, Q
 from rest_framework.response import Response
 from datetime import date
 
@@ -36,7 +36,15 @@ class LigacoesPorDiaView(APIView):
             queryset
             .annotate(dia=TruncDate('data_de_contato'))  # Agrupa a data (sem hora)
             .values('dia')
-            .annotate(quantidade=Count('codigo_unico'))  # Conta quantos registros por dia
+            .annotate(
+                quantidade=Count('codigo_unico'),
+                quantidade_answered=Count('codigo_unico', filter=Q(status='ANSWERED'))
+                )  # Conta quantos registros por dia
             .order_by('-dia')
         )
         return Response(list(dados))
+    
+class ListaChamadores(APIView):
+    def get(self, request):
+        nomes = ContatosPBX.objects.order_by().values_list('chamador', flat=True).distinct()
+        return Response(nomes)

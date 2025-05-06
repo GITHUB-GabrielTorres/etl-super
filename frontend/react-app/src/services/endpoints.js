@@ -4,5 +4,8 @@ export const endpoints = {
     contatos: {
         list: `${BASE_URL}/contatos/`,
         list_day: `${BASE_URL}/contatos-dia/`,
+    },
+    chamadores: {
+        list: `${BASE_URL}/chamadores/`
     }
 }
