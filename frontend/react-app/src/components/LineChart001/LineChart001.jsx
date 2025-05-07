@@ -2,15 +2,31 @@ import { ResponsiveLine } from '@nivo/line'
 import React, { useEffect, useState } from 'react'
 import { GetLigacoesPorDia } from '../../services/api'
 
+// Tooltip customizada
+const CustomTooltip = ({ point }) => (
+  <div
+    style={{
+      background: '#111827',
+      color: '#ffffff',
+      padding: '10px',
+      borderRadius: '6px',
+      fontSize: '14px',
+      boxShadow: '0 0 6px rgba(0,0,0,0.3)'
+    }}
+  >
+    <strong>{point.data.xFormatted}</strong><br />
+    Valor: <span style={{ color: point.serieColor }}>{point.data.yFormatted}</span>
+  </div>
+)
+
 export default function LineChart001({ inicio, fim, chamadores }) {
   const [dados, setDados] = useState([])
 
-  // Função auxiliar para encontrar todas as segundas-feiras no array de dados
   const obterSegundasFeiras = (dataArray) => {
     const diasUnicos = [...new Set(dataArray.map(item => item.x))]
     return diasUnicos.filter(dateStr => {
       const date = new Date(dateStr)
-      return date.getDay() === 0 // 1 = Segunda-feira
+      return date.getDay() === 0 // 0 = Domingo
     })
   }
 
@@ -37,7 +53,6 @@ export default function LineChart001({ inicio, fim, chamadores }) {
       })
   }
 
-  // Atualiza ao carregar ou ao mudar os filtros
   useEffect(() => {
     buscarDados()
     const intervalo = setInterval(buscarDados, 5000)
@@ -51,12 +66,11 @@ export default function LineChart001({ inicio, fim, chamadores }) {
     }
   ]
 
-  // Calcula os markers para todas as segundas-feiras
   const markers = obterSegundasFeiras(dados).map(data => ({
     axis: 'x',
     value: data,
     lineStyle: {
-      stroke: '#00fff844',
+      stroke: '#000e2533',
       strokeWidth: 3
     }
   }))
@@ -66,44 +80,39 @@ export default function LineChart001({ inicio, fim, chamadores }) {
       {dados.length > 0 ? (
         <ResponsiveLine
           data={data}
-          margin={{ top: 20, right: 10, bottom: 50, left: 45 }}
+          margin={{ top: 7, right: 7, bottom: 50, left: 45 }}
           curve="monotoneX"
           xScale={{ type: 'point' }}
           yScale={{ type: 'linear' }}
           markers={markers}
+          enableArea={true}
+          areaOpacity={0.1}
+          enablePointLabel={true}        
           axisBottom={{
             tickRotation: -25,
-            legendPosition: 'middle'
           }}
-          colors={['#fff', '#60a5fa', '#34d399']}
-          pointSize={6}
+          colors={['#000e2588', '#60a5fa', '#34d399']}
+          pointSize={0}
+          enableGridX={false}
+          enableGridY={false}
           pointBorderWidth={2}
           pointBorderColor={{ from: 'serieColor' }}
           useMesh={true}
+          tooltip={({ point }) => <CustomTooltip point={point} />}
           theme={{
             axis: {
               ticks: {
                 text: {
-                  fill: '#ddd',
-                  fontSize: 15
+                  fill: '#000e2588',
+                  fontSize: 13
                 }
               }
             },
             textColor: '#1f2937',
             grid: {
               line: {
-                stroke: '#fff2',
+                stroke: '#d9d9d9',
                 strokeWidth: 1
-              }
-            },
-            tooltip: {
-              container: {
-                background: '#f9fafb20',
-                color: '#ddd',
-                fontSize: 16,
-                borderRadius: '6px',
-                padding: '8px 12px',
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
               }
             }
           }}
