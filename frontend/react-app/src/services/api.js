@@ -34,6 +34,7 @@ export async function GetLigacoesPorDia(filtros = {}) {
     }
 }
 
+/* Função que pega do endpoint chamadores os chamadores */
 export async function GetChamadores(){
     try {
         const response = await fetch(`${endpoints.chamadores.list}`, {

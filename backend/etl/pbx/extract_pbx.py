@@ -36,7 +36,7 @@ def get_ultima_data_contato():
             cur.execute("SELECT MAX(data_de_contato) FROM pbx_contatospbx;")
             result = cur.fetchone()[0]
             # Essa diferença se dá em relação à última datetime de ligação existente atualmente, e não em relação a agora.
-            result -= timedelta(hours=5)
+            result -= timedelta(hours=1)
             print(result)
             return result  # datetime ou None
     finally:
@@ -76,7 +76,7 @@ def extract_cdr_data():
 
         # Extrai os dados para um DataFrame
         df = pd.read_sql(query, engine)
-
+        print(df)
         # print(f"[EXTRACT] {len(df)} registros extraídos da tabela cdr.")
         # print(df.head())
         return df

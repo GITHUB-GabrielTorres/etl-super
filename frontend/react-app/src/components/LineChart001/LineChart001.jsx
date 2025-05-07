@@ -5,7 +5,16 @@ import { GetLigacoesPorDia } from '../../services/api'
 export default function LineChart001({ inicio, fim, chamadores }) {
   const [dados, setDados] = useState([])
 
-  useEffect(() => {
+  // Função auxiliar para encontrar todas as segundas-feiras no array de dados
+  const obterSegundasFeiras = (dataArray) => {
+    const diasUnicos = [...new Set(dataArray.map(item => item.x))]
+    return diasUnicos.filter(dateStr => {
+      const date = new Date(dateStr)
+      return date.getDay() === 0 // 1 = Segunda-feira
+    })
+  }
+
+  const buscarDados = () => {
     if (!inicio) return;
 
     const query_params = {
@@ -26,6 +35,13 @@ export default function LineChart001({ inicio, fim, chamadores }) {
         console.error('Erro ao buscar dados:', error)
         setDados([])
       })
+  }
+
+  // Atualiza ao carregar ou ao mudar os filtros
+  useEffect(() => {
+    buscarDados()
+    const intervalo = setInterval(buscarDados, 5000)
+    return () => clearInterval(intervalo)
   }, [inicio, fim, chamadores])
 
   const data = [
@@ -34,6 +50,16 @@ export default function LineChart001({ inicio, fim, chamadores }) {
       data: dados
     }
   ]
+
+  // Calcula os markers para todas as segundas-feiras
+  const markers = obterSegundasFeiras(dados).map(data => ({
+    axis: 'x',
+    value: data,
+    lineStyle: {
+      stroke: '#00fff844',
+      strokeWidth: 3
+    }
+  }))
 
   return (
     <div className="h-full w-full">
@@ -44,11 +70,7 @@ export default function LineChart001({ inicio, fim, chamadores }) {
           curve="monotoneX"
           xScale={{ type: 'point' }}
           yScale={{ type: 'linear' }}
-          markers={[
-            { axis: 'x', value: '2025-05-05', lineStyle: { stroke: '#00fff844', strokeWidth: 2 } },
-            { axis: 'x', value: '2025-05-12', lineStyle: { stroke: '#00fff844', strokeWidth: 2 } },
-            // adicione quantas segundas quiser
-          ]}
+          markers={markers}
           axisBottom={{
             tickRotation: -25,
             legendPosition: 'middle'
@@ -59,9 +81,9 @@ export default function LineChart001({ inicio, fim, chamadores }) {
           pointBorderColor={{ from: 'serieColor' }}
           useMesh={true}
           theme={{
-            axis:{
-              ticks:{
-                text:{
+            axis: {
+              ticks: {
+                text: {
                   fill: '#ddd',
                   fontSize: 15
                 }
@@ -83,10 +105,8 @@ export default function LineChart001({ inicio, fim, chamadores }) {
                 padding: '8px 12px',
                 boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)'
               }
-            },
-            
-          }
-        }
+            }
+          }}
         />
       ) : (
         <p className="text-center text-gray-500">Carregando ou sem dados disponíveis.</p>

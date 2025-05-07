@@ -20,7 +20,7 @@ class LigacoesPorDiaView(APIView):
         data_fim = request.GET.get('data_fim')
         chamadores = request.GET.getlist('chamador')
 
-        queryset = ContatosPBX.objects.all()
+        queryset = ContatosPBX.objects.exclude(quem_recebeu_ligacao='h')
 
         if chamadores:
             queryset = queryset.filter(chamador__in=chamadores)

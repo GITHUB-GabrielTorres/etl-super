@@ -52,8 +52,10 @@ def processar_dados_pbx_cdr():
 
     return df_new_columns_names
 
-# Executa o processo de transformação dos dados
-df_tratado = processar_dados_pbx_cdr()
+while True:
+    # Executa o processo de transformação dos dados
+    df_tratado = processar_dados_pbx_cdr()
 
-# Executa o carregamento dos dados no DW
-carregamento_dos_dados(df_tratado)
+    # Executa o carregamento dos dados no DW
+    carregamento_dos_dados(df_tratado)
+    time.sleep(5)

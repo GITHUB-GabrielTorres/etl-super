@@ -15,6 +15,7 @@ function App() {
     setAppliedStartDate(startDate)
     setAppliedEndDate(endDate)
   }
+
   useEffect(() => {
     console.log('Chamadores selecionados:', chamadoresSelecionados);
     // Aqui você pode fazer uma chamada de API ou atualizar algum gráfico
