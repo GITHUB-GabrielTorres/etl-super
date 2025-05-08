@@ -62,15 +62,15 @@ function App() {
 
               </div> */}
               <div className="linechart-configs px-2 mb-2 py-1 flex gap-5">
-                <div className="endDate bg-[#fffe] px-2 py-1 rounded-[10px_10px_10px_10px]">
+                <div className="endDate bg-[#e0e0e6] px-2 py-1 rounded-[10px_10px_10px_10px] border-1 border-[#fdfdfd] flex items-center">
                   <label htmlFor="endDate" className='text-[#313131] '>Data Final:</label>
                   <input type="date" id='endDate' className='px-2 text-[#313131]' />
                 </div>
-                <div className="startDate bg-[#fffe] px-2 py-1 rounded-[10px_10px_10px_10px]">
-                  <label htmlFor="startDate" className='text-[#313131]'>Data Inicial</label>
+                <div className="startDate bg-[#e0e0e6] px-2 py-1 rounded-[10px_10px_10px_10px] border-1 border-[#fdfdfd] flex items-center">
+                  <label htmlFor="startDate" className='text-[#313131]'>Data Inicial:</label>
                   <input type="date" id='startDate' className='mx-1 px-2 text-[#313131]' />
                 </div>
-                <div className="startDate bg-[#fffe] py-1 rounded-[10px_10px_10px_10px]">
+                <div className="startDate bg-[#e0e0e6] py-1 rounded-[10px_10px_10px_10px] border-1 border-[#fdfdfd] flex items-center">
                   <MultiSelectDropdown options={['Gabriel','Torres']} />
                 </div>
               </div>

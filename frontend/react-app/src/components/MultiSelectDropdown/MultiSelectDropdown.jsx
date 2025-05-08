@@ -16,15 +16,15 @@ return (
     <div className="relative">
         <button
             onClick={() => setIsOpen(!isOpen)}
-            className="bg-white px-3 py-[5px] text-sm cursor-pointer"
+            className=" px-3 py-[5px] cursor-pointer"
         >
-            {selected.length > 0 ? selected.join(', ') : 'Selecionar tipos'}
+            {selected.length > 0 ? `Chamadores: ${selected.join(', ')}` : 'Chamadores'}
         </button>
 
     {isOpen && (
-        <div className="absolute mt-2 w-48 bg-white rounded shadow z-10">
+        <div className="absolute mt-2 w-48 bg-[#e0e0e633] backdrop-blur-[3px] border-1 border-[#fdfdfd] rounded shadow z-10">
             {options.map(option => (
-                <label key={option} className="flex items-center px-1.5 py-1 hover:bg-gray-100">
+                <label key={option} className="flex items-center px-1.5 py-1 hover:bg-[#afafb4]">
                     <input
                         type="checkbox"
                         checked={selected.includes(option)}
