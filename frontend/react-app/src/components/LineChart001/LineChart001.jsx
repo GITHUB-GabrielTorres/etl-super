@@ -1,21 +1,15 @@
 import { ResponsiveLine } from '@nivo/line'
 import React, { useEffect, useState } from 'react'
 import { GetLigacoesPorDia } from '../../services/api'
+import { formatDate } from '../../utils/formatter'
+import { line as d3Line, curveMonotoneX } from 'd3-shape'
+
 
 // Tooltip customizada
 const CustomTooltip = ({ point }) => (
-  <div
-    style={{
-      background: '#111827',
-      color: '#ffffff',
-      padding: '10px',
-      borderRadius: '6px',
-      fontSize: '14px',
-      boxShadow: '0 0 6px rgba(0,0,0,0.3)'
-    }}
-  >
-    <strong>{point.data.xFormatted}</strong><br />
-    Valor: <span style={{ color: point.serieColor }}>{point.data.yFormatted}</span>
+  <div className='bg-linear-125 from-[#003b3966] to-[#003b3999] backdrop-blur-[1px] p-1.5 rounded border-1 border-white flex flex-col items-center'>
+    <strong className='text-sm text-white'>{formatDate(point.data.xFormatted)}</strong>
+    <strong className='text-sm text-white'>Valor: <span style={{ color: point.serieColor }}>{point.data.yFormatted}</span></strong>
   </div>
 )
 
@@ -26,7 +20,7 @@ export default function LineChart001({ inicio, fim, chamadores }) {
     const diasUnicos = [...new Set(dataArray.map(item => item.x))]
     return diasUnicos.filter(dateStr => {
       const date = new Date(dateStr)
-      return date.getDay() === 0 // 0 = Domingo
+      return date.getDay() in [0] // 0 = Segunda
     })
   }
 
@@ -55,7 +49,7 @@ export default function LineChart001({ inicio, fim, chamadores }) {
 
   useEffect(() => {
     buscarDados()
-    const intervalo = setInterval(buscarDados, 5000)
+    const intervalo = setInterval(buscarDados, 1000)
     return () => clearInterval(intervalo)
   }, [inicio, fim, chamadores])
 
@@ -70,16 +64,54 @@ export default function LineChart001({ inicio, fim, chamadores }) {
     axis: 'x',
     value: data,
     lineStyle: {
-      stroke: '#000e2533',
-      strokeWidth: 3
+      stroke: '#54545411',
+      strokeWidth: 70
     }
   }))
+// Linha 90
+const GradientLineLayer = ({ series, xScale, yScale }) => {
+  const lineGenerator = d3Line()
+    .x(d => xScale(d.data.x))
+    .y(d => yScale(d.data.y))
+    .curve(curveMonotoneX)
 
   return (
+    <g>
+      <defs>
+        <linearGradient id="line-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#000e25" />
+          <stop offset="40%" stopColor="#00b2ad77" />
+          <stop offset="95%" stopColor="#00b2ad11" />
+        </linearGradient>
+      </defs>
+      {series.map(({ data }, i) => (
+        <path
+          key={i}
+          d={lineGenerator(data)}
+          fill="none"
+          stroke="url(#line-gradient)"
+          strokeWidth={3}
+        />
+      ))}
+    </g>
+  )
+}
+
+  return (
+    
     <div className="h-full w-full">
       {dados.length > 0 ? (
         <ResponsiveLine
           data={data}
+          layers={[
+            'grid',
+            'axes',
+            GradientLineLayer, // Linha 134 — aqui o layer customizado substitui a linha padrão
+            'points',
+            'markers',
+            'mesh',
+            'legends',
+          ]}
           margin={{ top: 7, right: 7, bottom: 50, left: 45 }}
           curve="monotoneX"
           xScale={{ type: 'point' }}
@@ -89,10 +121,19 @@ export default function LineChart001({ inicio, fim, chamadores }) {
           areaOpacity={0.1}
           enablePointLabel={true}        
           axisBottom={{
-            tickRotation: -25,
+            tickRotation: -35,
+            format: value => formatDate(value),
+            legendOffset: 100,
+            legend: '',
+            tickPadding: 10,
+            tickSize: 0,
           }}
-          colors={['#000e2588', '#60a5fa', '#34d399']}
-          pointSize={0}
+          axisLeft={{
+            tickPadding: 20,
+            tickSize: 0,
+          }}
+          colors={{ scheme: 'nivo' }}
+          pointSize={0} 
           enableGridX={false}
           enableGridY={false}
           pointBorderWidth={2}
@@ -104,7 +145,7 @@ export default function LineChart001({ inicio, fim, chamadores }) {
               ticks: {
                 text: {
                   fill: '#000e2588',
-                  fontSize: 13
+                  fontSize: 12
                 }
               }
             },
