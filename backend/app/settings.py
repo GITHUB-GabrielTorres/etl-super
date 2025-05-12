@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'pbx',
     'rest_framework',
     'corsheaders',
+    'empresa',
 ]
 
 MIDDLEWARE = [

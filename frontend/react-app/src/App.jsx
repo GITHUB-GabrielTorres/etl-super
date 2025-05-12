@@ -8,9 +8,24 @@ import LineChart001 from './components/LineChart001/LineChart001'
 import ListOptions001 from './components/ListOptions001/ListOptions001'
 import Table001 from './components/Table001/Table001'
 import MultiSelectDropdown from './components/MultiSelectDropdown/MultiSelectDropdown'
+import { GetChamadores } from './services/api'
 
 
 function App() {
+  // Os chamadores selecionados
+  const [chamadoresSelecionados, setChamadoresSelecionados] = useState([])
+
+  // Os chamadores
+  const [chamadores, setChamadores] = useState([])
+
+  useEffect(() =>{
+    GetChamadores().then(lista => {
+      if (lista && Array.isArray(lista)){
+        setChamadores(lista.sort())
+      }
+    })
+  }, [])
+
   return (
     <div className='min-h-screen h-full w-full bg-[#f1f1f7] flex'>
       <div className="sideBar w-[clamp(200px,19vw,400px)] border-r-1 border-[#C9C9C9]  grid grid-cols-1 grid-rows-[auto_auto_1fr_auto]">
@@ -29,16 +44,16 @@ function App() {
           </div>
         </div>
         <div className="menuItems">
-          <nav class="mt-6">
-            <ul class="space-y-2 px-8">
+          <nav className="mt-6">
+            <ul className="space-y-2 px-8">
               <li>
-                <a href="#" class="flex items-center gap-2 p-2 rounded">
+                <a href="#" className="flex items-center gap-2 p-2 rounded">
                   <span><FaPhone size={22}/></span>
                   <span className='font-bold text-2xl'>PBX — Ligações</span>
                 </a>
               </li>
               <li>
-                <a href="#" class="flex items-center gap-2 p-2 rounded text-gray-400">
+                <a href="#" className="flex items-center gap-2 p-2 rounded text-gray-400">
                   <span ><FaBullseye size={22}/></span>
                   <span className='font-bold text-2xl'>Metas</span>
                 </a>
@@ -57,10 +72,7 @@ function App() {
           </div>
           <div className="lineChartCallsContainer">
             <h3 className='text-3xl font-bold'>Ligações em Tempo Real</h3>
-            <div className="lineChartCalls rounded-3xl bg-linear-to-r from-[#e8e8ee] to-[#f2f2f8] px-2 py-4 shadow-[4px_4px_15px_#c9c9c922] w-full h-80 mt-2 relative">
-              {/* <div className="teste z-1 bg-radial-[at_15%_35%] from-transparent to-[#fff8] from-20% to-90% absolute w-full h-full">
-
-              </div> */}
+            <div className="lineChartCalls rounded-3xl bg-linear-to-r from-[#e8e8ee] to-[#f2f2f8] px-2 py-4 shadow-[4px_4px_15px_#c9c9c922] w-full h-110 mt-2 relative">
               <div className="linechart-configs px-2 mb-2 py-1 flex gap-5">
                 <div className="endDate bg-[#e0e0e6] px-2 py-1 rounded-[10px_10px_10px_10px] border-1 border-[#fdfdfd] flex items-center">
                   <label htmlFor="endDate" className='text-[#313131] '>Data Final:</label>
@@ -71,10 +83,10 @@ function App() {
                   <input type="date" id='startDate' className='mx-1 px-2 text-[#313131]' />
                 </div>
                 <div className="startDate bg-[#e0e0e6] py-1 rounded-[10px_10px_10px_10px] border-1 border-[#fdfdfd] flex items-center">
-                  <MultiSelectDropdown options={['Gabriel','Torres']} />
+                  <MultiSelectDropdown options={chamadores} chamadores={setChamadoresSelecionados} />
                 </div>
               </div>
-              <LineChart001 inicio='2025-04-10' fim='2025-05-08'/>
+              <LineChart001 inicio='2025-04-10' fim='2025-05-20' chamadores={chamadoresSelecionados}/>
             </div>
           </div>
         </div>

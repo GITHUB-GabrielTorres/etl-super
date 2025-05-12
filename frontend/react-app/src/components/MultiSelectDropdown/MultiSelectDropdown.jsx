@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function MultiSelectDropdown({ options = [] }) {
+export default function MultiSelectDropdown({ options = [], chamadores }) {
 const [isOpen, setIsOpen] = useState(false)
 const [selected, setSelected] = useState([])
 
@@ -10,6 +10,9 @@ const toggleOption = (option) => {
         ? prev.filter(item => item !== option)
         : [...prev, option]
     )
+
+    // Isso adiciona no pai os items
+    chamadores(prev => prev.includes(option) ? prev.filter(item => item !== option) : [...prev, option])
 }
 
 return (

@@ -1,5 +1,8 @@
 from django.db import models
 
+from empresa.models import Setores
+from empresa.models import Colaboradores
+
 class ContatosPBX(models.Model):
 
     codigo_unico = models.CharField(max_length=250, primary_key=True)
@@ -19,3 +22,20 @@ class ContatosPBX(models.Model):
         verbose_name = "Contato PBX"
         verbose_name_plural = "Contatos PBX"
         ordering = ['-data_de_contato']
+
+class SetorChamadorHistorico(models.Model):
+    setor = models.ForeignKey(Setores, on_delete=models.PROTECT)
+    chamador = models.ForeignKey(Colaboradores, on_delete=models.PROTECT)
+    data_de_inicio = models.DateField()
+    data_de_saida = models.DateField(null=True, blank=True)
+
+class ColaboradorEAliasChamador(models.Model):
+    nome_errado = models.CharField(max_length=250)
+    colaborador = models.ForeignKey(Colaboradores, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.colaborador} - {self.nome_errado}'
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["nome_errado"], name="unique_nome_errado")
+        ]

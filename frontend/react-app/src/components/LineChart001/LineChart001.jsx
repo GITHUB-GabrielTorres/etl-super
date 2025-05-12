@@ -49,7 +49,7 @@ export default function LineChart001({ inicio, fim, chamadores }) {
 
   useEffect(() => {
     buscarDados()
-    const intervalo = setInterval(buscarDados, 1000)
+    const intervalo = setInterval(buscarDados, 55000)
     return () => clearInterval(intervalo)
   }, [inicio, fim, chamadores])
 
@@ -112,7 +112,7 @@ const GradientLineLayer = ({ series, xScale, yScale }) => {
             'mesh',
             'legends',
           ]}
-          margin={{ top: 7, right: 7, bottom: 50, left: 45 }}
+          margin={{ top: 7, right: 7, bottom: 100, left: 45 }}
           curve="monotoneX"
           xScale={{ type: 'point' }}
           yScale={{ type: 'linear' }}
