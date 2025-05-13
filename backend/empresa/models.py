@@ -14,3 +14,9 @@ class Setores(models.Model):
 
     def __str__(self):
         return self.nome
+    
+class SetorChamadorHistorico(models.Model):
+    setor = models.ForeignKey(Setores, on_delete=models.PROTECT)
+    chamador = models.ForeignKey(Colaboradores, on_delete=models.PROTECT)
+    data_de_inicio = models.DateField()
+    data_de_saida = models.DateField(null=True, blank=True)

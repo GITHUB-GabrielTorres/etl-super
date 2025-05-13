@@ -1,84 +1,77 @@
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
-from django.db.models.functions import TruncDate, Concat
+from django.db.models.functions import TruncDate, Concat, TruncMonth
 from django.http import JsonResponse
-from django.db.models import Count, Value, CharField, Q, OuterRef, Subquery
+from django.db.models import Count, Value, CharField, Q, OuterRef, Subquery, DateField
 from rest_framework.response import Response
 from datetime import date
+from django.views import View
 from django.db import models
 from .serializers import ContatosPBXSerializer
+import pandas as pd
+import numpy as np
+from django.db.models.functions import ExtractWeekDay
 
 from .models import ContatosPBX, ColaboradorEAliasChamador
 from empresa.models import Colaboradores
 
-
+# View que mostra todas os contatos feitos
 class ListaContatos(ListAPIView):
     queryset = ContatosPBX.objects.all()
     serializer_class = ContatosPBXSerializer
 
-# Isso é o que recebe a URL GET. Aqui se tratam os querysets, por exemplo.
-class LigacoesPorDiaView(APIView):
+
+class Chamadores(APIView):
+    # Para APIView você deve definir o método, portanto faça um def get ou um def post etc.
     def get(self, request):
-        data_inicio = request.GET.get('data_inicio')
-        data_fim = request.GET.get('data_fim')
-        chamadores = request.GET.getlist('chamador')
+        filtros = {}
+        periodo = {}
+        media_movel_periodos = 5
+        dias_possiveis = [2,3,4,5,6] # Sábado é 0 e sexta é 6
+        chamadores = ['Suelen_Lidoni']
+        modo = 'ligacoes_totais' # media_movel || ligacoes_totais
+        periodo_desejado = 'dia'
 
-        queryset = ContatosPBX.objects.exclude(quem_recebeu_ligacao='h')
-
+        # Se houver dias selecionados ele insere isso no dic. de filtros
+        if dias_possiveis:
+            filtros['dia_da_semana__in'] = dias_possiveis
+        # Só adicionamos o filtro de 'chamador' se a lista de chamadores não for vazia
         if chamadores:
-            queryset = queryset.filter(chamador__in=chamadores)
+            filtros['chamador__in'] = chamadores
 
-        if data_inicio and data_fim:
-            queryset = queryset.filter(data_de_contato__date__range=[data_inicio, data_fim])
-
-        if data_inicio and not data_fim:
-            data_fim = date.today()
-            queryset = queryset.filter(data_de_contato__date__range=[data_inicio, data_fim])
+        if periodo_desejado == 'dia':
+            periodo['periodo'] = TruncDate('data_de_contato')
+        elif periodo_desejado == 'mes':
+            periodo['periodo'] = TruncMonth('data_de_contato')
 
         dados = (
-            queryset
-            .annotate(dia=TruncDate('data_de_contato'))  # Agrupa a data (sem hora)
-            .values('dia')
-            .annotate(
-                quantidade=Count('codigo_unico'),
-                quantidade_answered=Count('codigo_unico', filter=Q(status='ANSWERED'))
-                )  # Conta quantos registros por dia
-            .order_by('-dia')
+            ContatosPBX.objects
+            .annotate(**periodo,
+                dia_da_semana=ExtractWeekDay('data_de_contato'))
+            .values('chamador','periodo')
+            .annotate(contatos=Count('*'))
+            .order_by('-periodo')
+            .filter(**filtros)
         )
-        return Response(list(dados))
-    
-class ListaChamadores(APIView):
-    def get(self, request):
-        nomes = ContatosPBX.objects.order_by().values_list('chamador', flat=True).distinct()
-        return Response(nomes)
-    
-def ligacoes_por_colaborador_por_dia(request):
-    alias_subquery = ColaboradorEAliasChamador.objects.filter(
-        nome_errado=OuterRef('chamador')
-    ).values('colaborador_id')[:1]
 
-    queryset = (
-        ContatosPBX.objects
-        .annotate(colaborador_id=Subquery(alias_subquery))
-        .filter(colaborador_id__isnull=False)
-        .annotate(data=TruncDate('data_de_contato'))
-        .values('colaborador_id', 'data')
-        .annotate(total_ligacoes=Count('codigo_unico'))
-        .annotate(
-            primeiro_nome=Subquery(
-                Colaboradores.objects.filter(id=OuterRef('colaborador_id')).values('primeiro_nome')[:1]
-            ),
-            sobrenome=Subquery(
-                Colaboradores.objects.filter(id=OuterRef('colaborador_id')).values('sobrenome')[:1]
-            ),
-        )
-        .annotate(
-            nome_completo=Concat(
-                'primeiro_nome', Value(' '), 'sobrenome', output_field=CharField()
-            )
-        )
-        .values('colaborador_id', 'nome_completo', 'data', 'total_ligacoes')
-        .order_by('data', 'nome_completo')
-    )
+        # Pega os dados e insere em um DF de Pandas
+        df = pd.DataFrame(dados)
+        df = df.sort_values(by=['chamador', 'periodo'])  # garante ordem correta
 
-    return JsonResponse(list(queryset), safe=False)
+        if modo == 'ligacoes_totais':
+            df = df.rename(columns={'contatos': 'quantidade'})
+            return Response(df.sort_values(by='periodo', ascending=False).to_dict(orient='records'))
+
+        df['media_movel'] = (
+
+            df.groupby('chamador')['contatos']
+            .rolling(window=media_movel_periodos, min_periods=1)
+            .mean()
+            .reset_index(level=0, drop=True)
+        )
+        # Ordena resultado final por data decrescente
+        df = df.sort_values(by='periodo', ascending=False)
+        df = df.replace([np.nan, np.inf, -np.inf], None)
+
+        df = df.drop(columns=['contatos'])
+        return Response(df.to_dict(orient='records'))

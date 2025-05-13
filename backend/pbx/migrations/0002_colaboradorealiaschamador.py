@@ -7,8 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('empresa', '0001_initial'),
-        ('pbx', '0002_setorchamadorhistorico'),
+        ('pbx', '0001_initial'),
     ]
 
     operations = [
