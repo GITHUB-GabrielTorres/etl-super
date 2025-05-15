@@ -26,25 +26,27 @@ class ListaContatos(ListAPIView):
 class Chamadores(APIView):
     # Para APIView você deve definir o método, portanto faça um def get ou um def post etc.
     def get(self, request):
-        # Os filtros gerais estão aqui
+        ### Os filtros gerais ficarão aqui
         filtros = {}
-        # Aqui é onde ficará o parâmetro passado no annotate, ou truncmonth ou truncdate
+
+        ### Aqui é onde ficará o parâmetro passado no annotate, ou truncmonth ou truncdate
         periodo = {}
 
         ### Parte responsável pelo filtro de dias habilitados
-        dias_possiveis = request.GET.get('dias', '') # Sábado é 0 e sexta é 6
+        # Caso não haja nenhum filtro de dias, todos os dias serão adicionados
+        dias_possiveis = request.GET.get('dias', '0,1,2,3,4,5,6') # Sábado é 0 e sexta é 6
+        # Se houver algo na variável dias_possiveis, ele irá adicionar todos na lista
         if dias_possiveis:
         # Transforma "2,3,4,5,6" em [2, 3, 4, 5, 6]
+        # É um List Comprehension, pois é pego o string, e tratado dentro de uma lista
             dias_possiveis = [int(d) for d in dias_possiveis.split(',') if d.strip().isdigit()]
-        else:
-            # valor padrão se nada for passado
-            dias_possiveis = [0, 1, 2, 3, 4, 5, 6]
+
+        # Se houver dias selecionados ele insere isso no dic. de filtros
+        if dias_possiveis:
+            filtros['dia_da_semana__in'] = dias_possiveis
 
         ### Parte responsável por filtrar os chamadores
-        chamadoresq = request.GET.getlist('chamador')
-        if chamadoresq:
-            chamadores = chamadoresq
-        else: chamadores = ['']
+        chamadores = request.GET.getlist('chamador')
 
         ### Parte responsável pelo modo
         modo = request.GET.get('modo_y','ligacoes_totais') # media_movel || ligacoes_totais
@@ -53,47 +55,20 @@ class Chamadores(APIView):
         ### Parte responsável pelos tipos de periodos
         periodo_desejado = request.GET.get('tipo_periodo', 'dia') # dia ou mes
 
+        if periodo_desejado == 'dia':
+            periodo['periodo'] = TruncDate('data_de_contato')
+        elif periodo_desejado == 'mes':
+            periodo['periodo'] = TruncMonth('data_de_contato')
+
         ### Parte responsavel por agrupamento por chamador
         agrupa_por_chamador = request.GET.get('agrupamento_por_chamador',False) # bool
+        if agrupa_por_chamador:
+            # Se tiver algo, e o seu valor está na lista, ele fica true
+            agrupa_por_chamador = agrupa_por_chamador.lower() in ['true','1','sim']
 
         ### Parte para períodos
         periodo_inicial = request.GET.get('inicio','')
         periodo_final = request.GET.get('fim','')
-        agrupamento_values = ['periodo']
-
-        if agrupa_por_chamador:
-            agrupamento_values.append('chamador')
-
-        # Se houver dias selecionados ele insere isso no dic. de filtros
-        if dias_possiveis:
-            filtros['dia_da_semana__in'] = dias_possiveis
-
-        # Só adicionamos o filtro de 'chamador' se a lista de chamadores não for vazia
-        if chamadores:
-            # 1. Aqui pega as informações dos colaboradores e só insere um novo atributo, juntando o nome com o sobrenome
-            colaboradores_queryset = Colaboradores.objects.annotate(
-                nome_completo=Concat(
-                    'primeiro_nome', Value(' '), 'sobrenome', output_field=CharField()
-                )
-            )
-            # 2. Monta um filtro com OR para todos os nomes enviados
-            # O reduce vai iterando a função
-            # O Q é apenas uma forma de filtrar
-            # O or_ é o equivalente a dizer 'ou', é o ||
-            # Portanto a função abaixo faz o seguinte, para cada nome que está em chamadores ele verifica se contém em 'nome completo' que é o atributo novo da tabela de colaboradores, que foi criada antes.
-            filtro_nomes = reduce(
-                or_, [Q(nome_completo__icontains=nome) for nome in chamadores]
-            )
-
-            # 3. Aplica o filtro criado no queryset de colaboradores
-            colaboradores = colaboradores_queryset.filter(filtro_nomes)
-            # 4. Com os colaboradores em mãos, busca os nomes errados mapeados
-            # Isso está olhando lá em alias, pegando tudo que tem nome errado na entidade de ligação
-            nomes_errados = ColaboradorEAliasChamador.objects.filter(
-                colaborador_id__in=colaboradores.values_list('id', flat=True)
-            ).values_list('nome_errado', flat=True)
-            # 5. Agora sim: usa esses nomes errados como filtro nas ligações
-            filtros['chamador__in'] = list(nomes_errados)
             
         # Adiciona periodo inicial
         if periodo_inicial:
@@ -102,12 +77,52 @@ class Chamadores(APIView):
         if periodo_final:
             filtros['periodo__lte'] = periodo_final
 
-        if periodo_desejado == 'dia':
-            periodo['periodo'] = TruncDate('data_de_contato')
-        elif periodo_desejado == 'mes':
-            periodo['periodo'] = TruncMonth('data_de_contato')
+        ### Essa lista define sobre o que será agrupado a resposta toda
+        agrupamento_values = ['periodo']
 
+        # Se agrupa_por_chamador for verdadeiro, significa que o usuário quer que agrupe, então adicionar o 'chamador' na lista de agrupamento
+        if agrupa_por_chamador:
+            agrupamento_values.append('chamador')
+
+######## ! PARTE RESPONSÁVEL POR FILTRAR OS NOMES ERRADOS TODOS
+        # Só adicionamos o filtro de 'chamador' se a lista de chamadores não for vazia
         if chamadores:
+            # Aqui pega as informações dos colaboradores e só insere um novo atributo = que é a junção de nome com o sobrenome
+            # Usando annotate ele adiciona a coluna 'nome_completo'
+            colaboradores_queryset = Colaboradores.objects.annotate(
+                # Usa a Concat pra juntar 'primeiro_nome' com 'sobrenome' e define a coluna como CharField
+                nome_completo=Concat(
+                    'primeiro_nome', Value(' '), 'sobrenome', output_field=CharField()
+                )
+            )
+            # Monta um filtro com OR para todos os nomes enviados
+            # O reduce vai iterando a função
+            # O Q é apenas uma forma de filtrar
+            # O or_ é o equivalente a dizer 'ou', é o ||
+            # Portanto a função abaixo faz o seguinte, para cada nome que está em chamadores ele verifica se contém em 'nome completo' que é o atributo novo da tabela de colaboradores, que foi criada antes.
+            filtro_nomes = reduce(
+                # List Comprehension criando uma lista com os nomes, porém adicionando apenas o nome_completo caso esteja em chamadores
+                or_, [Q(nome_completo__icontains=nome) for nome in chamadores]
+                # RESULTADO ESPERADO: [nome_completo_icontains='Gabriel Torres',nome_completo_icontains='Aline Moreira']
+                # Isso garante que teremos uma filtro que pedirá apenas os nomes que tinhamos escolhido
+            )
+
+            # Aplica o filtro criado no queryset de colaboradores
+            colaboradores = colaboradores_queryset.filter(filtro_nomes)
+            # RESULTADO ESPERADO: A entidade inteira de Colaboradores, porém filtrado somente os chamadores solicitados
+            # Com os colaboradores em mãos, busca os nomes errados mapeados
+            # Isso está olhando lá em alias, pegando tudo que tem nome errado na entidade de ligação
+            nomes_errados = ColaboradorEAliasChamador.objects.filter(
+                # Aqui é pego os ids dos colaboradores solicitados. Essa lista será usada para pegar todos os nomes errados
+                # Aqui já define-se o filtro pegando, no atributo de colaborador_id só os ids dos colaboradores solicitados
+                colaborador_id__in=colaboradores.values_list('id', flat=True)
+                # RESULTADO ESPERADO: Na entidade de Alias ele filtra só os ids dos Chamadores escolhidos
+            ).values_list('nome_errado', flat=True) # Agora, tendo a entidade de Alias filtrada só com os Colaboradores solicitados, faz uma lista com os nomes errados
+            # RESULTADO ESPERADO: ['nome_errado1','nome_errado2','nome_errado3'] <= De todos os colaboradores solicitados
+
+            # Agora sim: usa essa lista de nomes errados como filtro nas ligações
+            filtros['chamador__in'] = list(nomes_errados)
+
             # Junta primeiro_nome + sobrenome como "nome_completo"
             colaboradores_queryset = Colaboradores.objects.annotate(
                 nome_completo=Concat(
@@ -122,6 +137,7 @@ class Chamadores(APIView):
             # Aplica filtro ao queryset
             colaboradores = colaboradores_queryset.filter(filtro_nomes)
 
+        # ! Aqui se criam os dados
         dados = (
             ContatosPBX.objects
             .annotate(**periodo,
