@@ -2,30 +2,79 @@ import { useState } from 'react'
 import { useEffect } from 'react'
 
 import './styles/App.css'
+import {stringify, v4 as uuidv4} from 'uuid'
 import { FaPhone } from "react-icons/fa6"
 import { FaBullseye } from "react-icons/fa6"
 import LineChart001 from './components/LineChart001/LineChart001'
 import ListOptions001 from './components/ListOptions001/ListOptions001'
 import Table001 from './components/Table001/Table001'
 import MultiSelectDropdown from './components/MultiSelectDropdown/MultiSelectDropdown'
-import { GetChamadores } from './services/api'
+import { GetColaboradores, GetLigacoes } from './services/api'
+import { ResponsiveLine } from "@nivo/line";
 
 
 function App() {
-  // Os chamadores selecionados
-  const [chamadoresSelecionados, setChamadoresSelecionados] = useState([])
-
-  // Os chamadores
-  const [chamadores, setChamadores] = useState([])
-
-  useEffect(() =>{
-    GetChamadores().then(lista => {
-      if (lista && Array.isArray(lista)){
-        setChamadores(lista.sort())
+  const [colaboradores, setColaboradores] = useState(null)
+  const [ligacoes, setLigacoes] = useState(null)
+  
+  // useEffect para abertura da página
+  useEffect(() => {
+    // ? Função para pegar os colaboradores
+    async function GetColaboradoresApp(){
+      try{
+          const resposta = await GetColaboradores()
+          setColaboradores(resposta)
+        } catch(erro){
+        console.log('Erro ao buscar os dados:', erro.message);
       }
-    })
+    }
+    GetColaboradoresApp()
+
+    // ? Função para pegar dados de ligação
+    async function PegaLigacoes(){
+      try{
+        const response = await GetLigacoes({
+          dias: [1, 2, 3, 4, 5, 6],
+          chamadores: ['Gabriel Torres', 'Aline Moreira'],
+          modo_y: 'ligacoes_totais',
+          periodo_media_movel: 2,
+          tipo_periodo: 'dia',
+          agrupamento_por_chamador: false,
+          inicio: '2025-04-21',
+          fim: '2025-05-10'
+        })
+        const comUID = response.map(item => ({ // Responsável por inserir o uid
+          ...item, _uid: uuidv4()
+        }))
+        // Caso não tenha colaborador. Significa que o agrupamento é por data. Portanto apenas x e y simples.
+        let dados_tratados = []
+        if (!response[0].colaborador){
+          dados_tratados = response.map(item => ({
+            x: item.periodo,
+            y: item.quantidade
+          }))
+        } else {console.log('Tem colab.')}
+
+        setLigacoes({id: 'Ligacoes', data: dados_tratados}) // Insere os dados com o ID
+        // console.log(`Dados: ${JSON.stringify(dados_tratados)}`)
+      } catch(error){
+        console.log(`O erro: ${error}`)
+      }
+    }
+    PegaLigacoes()
   }, [])
 
+  // Criação do Tooltip personalizado
+  const Tooltip1 = ({point}) => (
+    <div className='bg-[#00000081] backdrop-blur-[5px] p-2 border-1 border-white shadow-xl rounded-xl text-white mb-5'>
+      <h3 className='font-bold text-xl'>{point.seriesId}</h3>
+      <p>{`Data: ${point.data.xFormatted}`}</p>
+      <p>{`Quantidade: ${point.data.yFormatted}`}</p>
+      {console.log(point)}
+    </div>
+  )
+
+  
   return (
     <div className='min-h-screen h-full w-full bg-[#f1f1f7] flex'>
       <div className="sideBar w-[clamp(200px,19vw,400px)] border-r-1 border-[#C9C9C9]  grid grid-cols-1 grid-rows-[auto_auto_1fr_auto]">
@@ -72,21 +121,45 @@ function App() {
           </div>
           <div className="lineChartCallsContainer">
             <h3 className='text-3xl font-bold'>Ligações em Tempo Real</h3>
-            <div className="lineChartCalls rounded-3xl bg-linear-to-r from-[#e8e8ee] to-[#f2f2f8] px-2 py-4 shadow-[4px_4px_15px_#c9c9c922] w-full h-110 mt-2 relative">
-              <div className="linechart-configs px-2 mb-2 py-1 flex gap-5">
-                <div className="endDate bg-[#e0e0e6] px-2 py-1 rounded-[10px_10px_10px_10px] border-1 border-[#fdfdfd] flex items-center">
-                  <label htmlFor="endDate" className='text-[#313131] '>Data Final:</label>
-                  <input type="date" id='endDate' className='px-2 text-[#313131]' />
-                </div>
-                <div className="startDate bg-[#e0e0e6] px-2 py-1 rounded-[10px_10px_10px_10px] border-1 border-[#fdfdfd] flex items-center">
-                  <label htmlFor="startDate" className='text-[#313131]'>Data Inicial:</label>
-                  <input type="date" id='startDate' className='mx-1 px-2 text-[#313131]' />
-                </div>
-                <div className="startDate bg-[#e0e0e6] py-1 rounded-[10px_10px_10px_10px] border-1 border-[#fdfdfd] flex items-center">
-                  <MultiSelectDropdown options={chamadores} chamadores={setChamadoresSelecionados} />
-                </div>
+            {/* from-[#e8e8ee] to-[#f2f2f8]  */}
+            <div className="relative w-full rounded-3xl bg-gradient-to-r from-[#e8e8ee] to-[#f2f2f8] px-2 py-4 shadow-[4px_4px_15px_#c9c9c922] mt-2">
+              {colaboradores ? colaboradores.map(item => <p key={item.id}>{item.primeiro_nome}</p> ): <p>Carregando...</p>}
+              {ligacoes ? JSON.stringify(ligacoes) : <p>Carregando...</p>}
+              <div className='h-[400px]'>
+                <ResponsiveLine 
+                data={ligacoes ? [ligacoes] : []}
+                // Config da linha
+                lineWidth={6}
+                pointSize={0} // 0 remove os pontos
+                curve='monotoneX' // Formato da curva da(s) linha(s)
+                
+                // Eixos
+                yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: true, reverse: false }}
+                // AQUI entra o gradiente do site
+                defs={[
+                  {
+                    id: 'linha-gradiente',
+                    type: 'linearGradient',
+                    gradientTransform: 'rotate(9)', // ou use x1/y1/x2/y2
+                    colors: [
+                      { offset: 0, color: '#0f0' },
+                      { offset: 100, color: '#0f01' }
+                    ],
+                    x1: 0,
+                    y1: 0,
+                    x2: 1,
+                    y2: 0
+                  },
+                ]}
+                colors={() => 'url(#linha-gradiente)'}
+                // Config da área SVG
+                margin={{ top: 15, right: 25, bottom: 25, left: 25 }}
+
+                enableTouchCrosshair={true}
+                useMesh={true}
+                tooltip={Tooltip1}
+                />
               </div>
-              <LineChart001 inicio='2025-04-10' fim='2025-05-20' chamadores={chamadoresSelecionados}/>
             </div>
           </div>
         </div>
