@@ -1,4 +1,4 @@
-export function formatDate(dateStr, includeDayPrefix = false) {
+export function formatDate(dateStr, includeDayPrefix = false, includeYear = true) {
     const [year, month, day] = dateStr.split("-");
 
     if (!year || !month || !day) {
@@ -7,11 +7,16 @@ export function formatDate(dateStr, includeDayPrefix = false) {
 
     const date = new Date(`${year}-${month}-${day}`);
     const shortYear = year.slice(2);
-    const formattedDate = `${day}-${month}-${shortYear}`;
+    let formattedDate = ''
+    if (includeYear){
+        formattedDate = `${day}.${month}.${shortYear}`;
+    } else {
+        formattedDate = `${day}.${month}`;
+    }
 
     if (!includeDayPrefix) return formattedDate;
 
-    const daysOfWeek = ['S1', 'T', 'Q1', 'Q2', 'S2', 'S3', 'D'];
+    const daysOfWeek = ['SG', 'TE', 'QA', 'QI', 'SX', 'SB', 'D'];
     const dayOfWeek = date.getDay(); // 0 (domingo) a 6 (sábado)
     const prefix = daysOfWeek[dayOfWeek];
 
@@ -20,4 +25,4 @@ export function formatDate(dateStr, includeDayPrefix = false) {
 
 // Exemplos:
 console.log(formatDate("2025-05-08"));                 // Saída: 08-05-25
-console.log(formatDate("2025-05-08", true));           // Saída: Q2 08-05-25
+console.log(formatDate("2025-05-06", true));           // Saída: Q2 08-05-25

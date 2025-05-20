@@ -46,7 +46,8 @@ class Chamadores(APIView):
             filtros['dia_da_semana__in'] = dias_possiveis
 
         ### Parte responsável por filtrar os chamadores
-        chamadores = request.GET.getlist('chamador')
+        chamadores = request.GET.get('chamadores') # Virá algo como 'Gabriel Torres, Aline Moreira'
+        chamadores = [c.strip() for c in chamadores.split(',')]
 
         ### Parte responsável pelo modo
         modo = request.GET.get('modo_y','ligacoes_totais') # media_movel || ligacoes_totais

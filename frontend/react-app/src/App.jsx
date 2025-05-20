@@ -12,6 +12,7 @@ import MultiSelectDropdown from './components/MultiSelectDropdown/MultiSelectDro
 import { GetColaboradores, GetLigacoes } from './services/api'
 import { ResponsiveLine } from "@nivo/line";
 
+import { formatDate } from './utils/formatter'
 
 function App() {
   const [colaboradores, setColaboradores] = useState(null)
@@ -41,7 +42,7 @@ function App() {
           tipo_periodo: 'dia',
           agrupamento_por_chamador: false,
           inicio: '2025-04-21',
-          fim: '2025-05-10'
+          fim: '2025-05-20'
         })
         const comUID = response.map(item => ({ // Responsável por inserir o uid
           ...item, _uid: uuidv4()
@@ -50,7 +51,7 @@ function App() {
         let dados_tratados = []
         if (!response[0].colaborador){
           dados_tratados = response.map(item => ({
-            x: item.periodo,
+            x: formatDate(item.periodo, true, false),
             y: item.quantidade
           }))
         } else {console.log('Tem colab.')}
@@ -66,10 +67,10 @@ function App() {
 
   // Criação do Tooltip personalizado
   const Tooltip1 = ({point}) => (
-    <div className='bg-[#00000081] backdrop-blur-[5px] p-2 border-1 border-white shadow-xl rounded-xl text-white mb-5'>
+    <div className='bg-[#00000081] backdrop-blur-[5px] p-2 border-1 border-white shadow-xl rounded-xl text-white mb-5 whitespace-nowrap'>
       <h3 className='font-bold text-xl'>{point.seriesId}</h3>
-      <p>{`Data: ${point.data.xFormatted}`}</p>
-      <p>{`Quantidade: ${point.data.yFormatted}`}</p>
+      <p className='whitespace-nowrap'>{`Data: ${point.data.xFormatted}`}</p>
+      <p className='whitespace-nowrap'>{`Quantidade: ${point.data.yFormatted}`}</p>
       {console.log(point)}
     </div>
   )
@@ -129,9 +130,12 @@ function App() {
                 <ResponsiveLine 
                 data={ligacoes ? [ligacoes] : []}
                 // Config da linha
-                lineWidth={6}
+                lineWidth={3}
                 pointSize={0} // 0 remove os pontos
                 curve='monotoneX' // Formato da curva da(s) linha(s)
+                enablePointLabel={true}
+                pointLabelYOffset={-20} // distância do rótulo para cima
+                
                 
                 // Eixos
                 yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: true, reverse: false }}
@@ -142,8 +146,8 @@ function App() {
                     type: 'linearGradient',
                     gradientTransform: 'rotate(9)', // ou use x1/y1/x2/y2
                     colors: [
-                      { offset: 0, color: '#0f0' },
-                      { offset: 100, color: '#0f01' }
+                      { offset: 0, color: '#002f49' },
+                      { offset: 100, color: '#002f4944' }
                     ],
                     x1: 0,
                     y1: 0,
