@@ -123,13 +123,6 @@ class Chamadores(APIView):
 
             # Agora sim: usa essa lista de nomes errados como filtro nas ligações
             filtros['chamador__in'] = list(nomes_errados)
-
-            # Junta primeiro_nome + sobrenome como "nome_completo"
-            colaboradores_queryset = Colaboradores.objects.annotate(
-                nome_completo=Concat(
-                    'primeiro_nome', Value(' '), 'sobrenome', output_field=CharField()
-                )
-            )
             # Cria filtro com vários ORs usando Q
             filtro_nomes = reduce(
                 or_, [Q(nome_completo__icontains=nome) for nome in chamadores]
@@ -156,7 +149,7 @@ class Chamadores(APIView):
         # Caso o modo seja ligações totais, ele já trará um retorno aqui, sem processar o resto
         if modo == 'ligacoes_totais':
             df = df.rename(columns={'contatos': 'quantidade'})
-                        # 1. Mapeia nome errado para nome correto
+            # 1. Mapeia nome errado para nome correto
             if agrupa_por_chamador:
                 colaborador_map = {
                     alias.nome_errado: f"{alias.colaborador.primeiro_nome} {alias.colaborador.sobrenome}"

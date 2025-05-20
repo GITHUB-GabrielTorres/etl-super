@@ -68,26 +68,26 @@ export async function GetLigacoes(filtros = {}) {
 }
 
 // ? Exemplo funcional da consulta de dados de ligações
-GetLigacoes({
-    dias: [1, 2, 3, 4, 5, 6],
-    chamadores: ['Gabriel Torres', 'Aline Moreira'],
-    modo_y: 'ligacoes_totais',
-    periodo_media_movel: 2,
-    tipo_periodo: 'dia',
-    agrupamento_por_chamador: false,
-    inicio: '2025-01-01',
-    fim: '2025-05-10'
-}).then(response => {
-    // Parte responsável por tratar os nomes
-    if (!colaborador){
-        const dadosConvertidos = response.map(item => ({
-            x: item.periodo,
-            y: Number(item.quantidade) || 0
-        }));
-    }
+// GetLigacoes({
+//     dias: [1, 2, 3, 4, 5, 6],
+//     chamadores: ['Gabriel Torres', 'Aline Moreira'],
+//     modo_y: 'ligacoes_totais',
+//     periodo_media_movel: 2,
+//     tipo_periodo: 'dia',
+//     agrupamento_por_chamador: false,
+//     inicio: '2025-01-01',
+//     fim: '2025-05-10'
+// }).then(response => {
+//     // Parte responsável por tratar os nomes
+//     if (!colaborador){
+//         const dadosConvertidos = response.map(item => ({
+//             x: item.periodo,
+//             y: Number(item.quantidade) || 0
+//         }));
+//     }
 
-    console.log(dadosConvertidos);
-});
+//     console.log(dadosConvertidos);
+// });
 console.log('----')
 GetLigacoes({
     dias: [1, 2, 3, 4, 5, 6],

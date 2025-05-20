@@ -24,5 +24,5 @@ export function formatDate(dateStr, includeDayPrefix = false, includeYear = true
 }
 
 // Exemplos:
-console.log(formatDate("2025-05-08"));                 // Saída: 08-05-25
-console.log(formatDate("2025-05-06", true));           // Saída: Q2 08-05-25
+//console.log(formatDate("2025-05-08"));                 // Saída: 08-05-25
+//console.log(formatDate("2025-05-06", true));           // Saída: Q2 08-05-25

@@ -5,3 +5,11 @@ html, body, #root{
   width: 100vw;
   background: red;
 }
+
+/* styles.css ou um arquivo CSS que é importado no projeto */
+.botao-dia-ativo {
+    @apply px-4 py-2 bg-gray-100 text-sm shadow-sm font-medium rounded hover:bg-gray-200 cursor-pointer select-none;
+}
+.botao-dia-inativo {
+    @apply px-4 py-2 bg-gray-200 inset-shadow-[3px_3px_3px_3px_#5552] text-sm font-medium rounded hover:bg-gray-300 cursor-pointer select-none text-gray-500;
+}
