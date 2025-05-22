@@ -12,8 +12,8 @@ import { endpoints } from './endpoints.js';
 //     fim: '2025-05-10'
 // }
 
-export async function GetColaboradores(){
-    const url = `${endpoints.empresa.colaboradores}`
+export async function GetColaboradores(somenteAtivos = false){
+    const url = `${endpoints.empresa.colaboradores}${somenteAtivos ? '?ativo=1' : ''}`
 
     try{
         const response = await fetch(url,{
@@ -88,49 +88,49 @@ export async function GetLigacoes(filtros = {}) {
 
 //     console.log(dadosConvertidos);
 // });
-console.log('----')
-GetLigacoes({
-    dias: [1, 2, 3, 4, 5, 6],
-    chamadores: ['Suelen Lidoni', 'Aline Moreira'],
-    modo_y: 'ligacoes_totais',
-    periodo_media_movel: 2,
-    tipo_periodo: 'dia',
-    agrupamento_por_chamador: true,
-    inicio: '2025-03-01',
-    fim: '2025-05-10'
-}).then(response => {
-    if (!response[0].colaborador) /* Não tem colaborador entra aqui */{
-        // ✅ Caso NÃO tenha colaborador (gráfico com uma linha só)
-        const dadosConvertidos = response.map(item => ({
-            x: item.periodo,
-            y: Number(item.quantidade) || 0
-        }));
+// console.log('----')
+// GetLigacoes({
+//     dias: [1, 2, 3, 4, 5, 6],
+//     chamadores: ['Suelen Lidoni', 'Aline Moreira'],
+//     modo_y: 'ligacoes_totais',
+//     periodo_media_movel: 2,
+//     tipo_periodo: 'dia',
+//     agrupamento_por_chamador: true,
+//     inicio: '2025-03-01',
+//     fim: '2025-05-10'
+// }).then(response => {
+//     if (!response[0].colaborador) /* Não tem colaborador entra aqui */{
+//         // ✅ Caso NÃO tenha colaborador (gráfico com uma linha só)
+//         const dadosConvertidos = response.map(item => ({
+//             x: item.periodo,
+//             y: Number(item.quantidade) || 0
+//         }));
 
-        const resposta_final = [
-            {
-                id: 'Total',
-                data: dadosConvertidos
-            }
-        ];
+//         const resposta_final = [
+//             {
+//                 id: 'Total',
+//                 data: dadosConvertidos
+//             }
+//         ];
 
-        console.log(JSON.stringify(resposta_final, null, 2));
-    } else /* Caso tenha colaborador entra aqui */{
+//         console.log(JSON.stringify(resposta_final, null, 2));
+//     } else /* Caso tenha colaborador entra aqui */{
 
-        const resposta_formatada = {}
-        response.forEach(item => {
-            if (!resposta_formatada[item.colaborador]){
-                resposta_formatada[item.colaborador] = []
-            }
-            resposta_formatada[item.colaborador].push({
-                x: item.periodo,
-                y: item.quantidade
-            })
-        })
-        const resposta_final = Object.entries(resposta_formatada).map(([colaborador, data]) => ({
-            id: colaborador,
-            data: data
-        }))
-        // console.log(JSON.stringify(resposta_final, null, 2))
-        }
-    }
-)
+//         const resposta_formatada = {}
+//         response.forEach(item => {
+//             if (!resposta_formatada[item.colaborador]){
+//                 resposta_formatada[item.colaborador] = []
+//             }
+//             resposta_formatada[item.colaborador].push({
+//                 x: item.periodo,
+//                 y: item.quantidade
+//             })
+//         })
+//         const resposta_final = Object.entries(resposta_formatada).map(([colaborador, data]) => ({
+//             id: colaborador,
+//             data: data
+//         }))
+//         // console.log(JSON.stringify(resposta_final, null, 2))
+//         }
+//     }
+// )

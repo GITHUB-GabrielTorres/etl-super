@@ -6,10 +6,27 @@ html, body, #root{
   background: red;
 }
 
+// Remove spinners (setas para cima e baixo)
+@layer base {
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
 /* styles.css ou um arquivo CSS que é importado no projeto */
 .botao-dia-ativo {
     @apply px-4 py-2 bg-gray-100 text-sm shadow-sm font-medium rounded hover:bg-gray-200 cursor-pointer select-none;
 }
 .botao-dia-inativo {
     @apply px-4 py-2 bg-gray-200 inset-shadow-[3px_3px_3px_3px_#5552] text-sm font-medium rounded hover:bg-gray-300 cursor-pointer select-none text-gray-500;
+}
+.input-number-ativo {
+  @apply [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+                        px-4 py-1 w-20 focus:outline-none focus:ring-1 focus:ring-[#000e2533] bg-gray-100 shadow-sm font-medium rounded
+}
+.input-number-inativo {
+  @apply [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+                        px-4 py-1 w-20 focus:outline-none focus:ring-1 focus:ring-[#000e2533] bg-gray-200 font-medium rounded inset-shadow-[3px_3px_3px_3px_#5551] cursor-not-allowed text-[#0000]
 }

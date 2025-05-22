@@ -136,6 +136,7 @@ class Chamadores(APIView):
             ContatosPBX.objects
             .annotate(**periodo,
                 dia_da_semana=ExtractWeekDay('data_de_contato'))
+            .filter(~Q(quem_recebeu_ligacao='h'))
             .values(*agrupamento_values)
             .annotate(contatos=Count('*'))
             .order_by('-periodo')
@@ -159,6 +160,9 @@ class Chamadores(APIView):
                 # 2. Substitui nomes errados pelo nome correto no DataFrame
                 df['colaborador'] = df['chamador'].map(colaborador_map)
                 df = df.drop(columns=['chamador'])
+
+                # Agrupa de novo somando os contatos
+                df = df.groupby(['periodo', 'colaborador'], as_index=False).sum()
 
             return Response(df.sort_values(by='periodo', ascending=False).to_dict(orient='records'))
 
