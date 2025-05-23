@@ -4,22 +4,14 @@
   import {stringify, v4 as uuidv4} from 'uuid'
   import { FaPhone } from "react-icons/fa6"
   import { FaBullseye } from "react-icons/fa6"
-  import LineChart001 from './components/LineChart001/LineChart001'
-  import ListOptions001 from './components/ListOptions001/ListOptions001'
-  import Table001 from './components/Table001/Table001'
-  import MultiSelectDropdown from './components/MultiSelectDropdown/MultiSelectDropdown'
   import { GetColaboradores, GetLigacoes } from './services/api'
   import { ResponsiveLine } from "@nivo/line";
 
+  import DiasFiltro from './components/filters/filtrosDeDiasSemana/filtroDeDiasSemana'
+  import BotaoFiltroOrdenado from './components/filters/BotaoFiltroOrdenado/BotaoFiltroOrdenado'
+  import InputDeData from './components/filters/InputDeData/InputDeData'
   import { formatDate } from './utils/formatter'
 
-// asdasd
-const options = [
-  "Gabriel Torres",
-  "Aline Moreira",
-  "Sabrina Helen",
-  "Suelen Lidoni"
-];
   function App() {
     // Data linechart 
     const [ligacoes, setLigacoes] = useState([])
@@ -35,6 +27,8 @@ const options = [
     // Dropdown list
     const [isOpen, setIsOpen] = useState(false);
     const [chamadorSelecionado, setChamadorSelecionado] = useState([]);
+    // Todos colabs ou só ativos
+    const [todosAtivos, setTodosAtivos] = useState(true)
     
     // Criação da referência necessária para o handleClickOutside
     const dropdownRef = useRef(null);
@@ -57,14 +51,14 @@ const options = [
       // ? Função para pegar os colaboradores
       async function GetColaboradoresApp(){
         try{
-            const resposta = await GetColaboradores()
+            const resposta = await GetColaboradores(todosAtivos)
             setColaboradores(resposta)
           } catch(erro){
           console.log('Erro ao buscar os dados:', erro.message);
         }
       }
       GetColaboradoresApp()
-    }, [])
+    }, [todosAtivos])
     useEffect(() => {
       // ? Função para pegar dados de ligação
       async function PegaLigacoes(){
@@ -163,14 +157,27 @@ const options = [
     )
 
 
-
+  // Aqui é sobre o dropdown list
   const toggleOption = (option) => {
     setChamadorSelecionado((prev) =>
       prev.includes(option)
         ? prev.filter((item) => item !== option)
         : [...prev, option]
-    );
-  };
+    )
+  }
+
+  const itemsBotaoTipoPeriodo = {
+        1: {placeholder: 'DIA', valor: 'dia'},
+        2: {placeholder: 'MÊS', valor: 'mes'},
+    }
+  const itemsBotaoAgrupamento = {
+        1: {placeholder: 'TOTAL', valor: false},
+        2: {placeholder: 'CHAMADOR', valor: true},
+    }
+  const itemsBotaoModoY = {
+        1: {placeholder: 'TOTAL', valor: 'ligacoes_totais'},
+        2: {placeholder: 'MÉDIA MÓVEL', valor: 'media_movel'},
+    }
 
     
     return (
@@ -223,39 +230,21 @@ const options = [
               <div className="relative w-full rounded-xl bg-gradient-to-r from-[#e8e8ee] to-[#f2f2f8] px-2 py-4 shadow-[4px_4px_15px_#c9c9c922] mt-2">
                 <div className="containerMasterFiltros flex gap-5">
                   <div className='containerDiasFiltro'>
-                    <p className='mb-1 font-semibold'>Dias da semana</p>
-                    <div className="containerBotoesDiasFiltro flex gap-1">
-                      <div className={`botao-dia ${dias.includes(2) ? 'botao-dia-ativo' : 'botao-dia-inativo'}`} onClick={() => toggleDiaDaSemana(2)}>SG</div>
-                      <div className={`botao-dia ${dias.includes(3) ? 'botao-dia-ativo' : 'botao-dia-inativo'}`} onClick={() => toggleDiaDaSemana(3)}>TE</div>
-                      <div className={`botao-dia ${dias.includes(4) ? 'botao-dia-ativo' : 'botao-dia-inativo'}`} onClick={() => toggleDiaDaSemana(4)}>QA</div>
-                      <div className={`botao-dia ${dias.includes(5) ? 'botao-dia-ativo' : 'botao-dia-inativo'}`} onClick={() => toggleDiaDaSemana(5)}>QI</div>
-                      <div className={`botao-dia ${dias.includes(6) ? 'botao-dia-ativo' : 'botao-dia-inativo'}`} onClick={() => toggleDiaDaSemana(6)}>SX</div>
-                      <div className={`botao-dia ${dias.includes(0) ? 'botao-dia-ativo' : 'botao-dia-inativo'}`} onClick={() => toggleDiaDaSemana(0)}>SB</div>
-                      <div className={`botao-dia ${dias.includes(1) ? 'botao-dia-ativo' : 'botao-dia-inativo'}`} onClick={() => toggleDiaDaSemana(1)}>DM</div>
-                    </div>
+                      <DiasFiltro dias={dias} toggleDiaDaSemana={toggleDiaDaSemana}/>
                   </div>
                   <div className="containerTipoPeriodoFiltro">
                     <div className="containerBotoesTipoPeriodoFiltro text-center">
-                      <p className='mb-1 font-semibold'>Tipo Período</p>
-                      <div className={`botao-tipoPeriodo botao-dia-ativo text-center`} onClick={() => toggleTipoPeriodo()}>
-                        {tipoPeriodo == 'dia' ? 'DIA' : 'MÊS'}
-                      </div>
+                      <BotaoFiltroOrdenado setador={setTipoPeriodo} items={itemsBotaoTipoPeriodo} titulo='Tipo Período'/>
                     </div>
                   </div>
                   <div className="containerAgrupamentoPorChamadorFiltro w-30">
                     <div className="containerBotoesAgrupamentoPorChamadorFiltro text-center">
-                      <p className='mb-1 font-semibold'>Agrupamento</p>
-                      <div className={`botao-tipoPeriodo botao-dia-ativo text-center`} onClick={() => toggleAgrupamentoPorChamador()}>
-                        {agrupadoPorChamador ? 'CHAMADOR' : 'TOTAL'}
-                      </div>
+                      <BotaoFiltroOrdenado setador={setAgrupadoPorChamador} items={itemsBotaoAgrupamento} titulo='Agrupamento'/>
                     </div>
                   </div>
                   <div className="containerModoY w-35">
                     <div className="containerBotoesModoY text-center">
-                      <p className='mb-1 font-semibold'>Tipo de Info</p>
-                      <div className={`botao-tipoPeriodo botao-dia-ativo text-center`} onClick={() => toggleModoY()}>
-                        {modoY == 'ligacoes_totais' ? 'TOTAL' : 'MÉDIA MÓVEL'}  
-                      </div>
+                      <BotaoFiltroOrdenado setador={setModoY} items={itemsBotaoModoY} titulo='Tipo de Info'/>
                     </div>
                   </div>
                   <div className="containerPeriodosMediaMovel">
@@ -266,49 +255,49 @@ const options = [
                   </div>
                   <div className="containerDataInicio">
                     <div className="containerBotoesDataInicio text-center">
-                      <p className='mb-1 font-semibold'>Início</p>
-                        <input max={dataFim} className={`bg-gray-100 shadow-sm font-medium rounded px-4 py-1 ${!dataInicio ? 'text-gray-400' : ''} ${(dataInicio > dataFim) && (dataFim !== '') ? 'text-red-500' : ''}`} type="date" name="dataInicio" id="dataInicio" onChange={(e) => setDataInicio(e.target.value)}/>
+                      <InputDeData setador={setDataInicio} titulo='Inicio' max={dataFim}/>
                     </div>
                   </div>
                   <div className="containerDataInicio">
                     <div className="containerBotoesDataInicio text-center">
-                      <p className='mb-1 font-semibold'>Fim</p>
-                        <input min={dataInicio} className={`bg-gray-100 shadow-sm font-medium rounded px-4 py-1 ${!dataFim ? 'text-gray-400' : ''} ${(dataInicio > dataFim) && (dataFim !== '') ? 'text-red-500' : ''}`} type="date" name="dataFim" id="dataFim" onChange={(e) => setDataFim(e.target.value)}/>
+                      <InputDeData setador={setDataFim} titulo='Teste Fim' min={dataInicio}/>
                     </div>
                   </div>
                 </div>
                 
                 {/* asdasd */}
-                {chamadorSelecionado}
-                <div ref={dropdownRef} className="relative inline-block w-full mt-5">
-                  <button
-                    type="button"
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="w-full font-medium rounded text-left bg-gray-100 shadow-sm px-4 py-2 cursor-pointer focus:ring-2 focus:outline-1 focus:ring-[#000e2533]0"
-                  >
-                    {chamadorSelecionado.length > 0
-                      ? `Chamadores: ${chamadorSelecionado.join(", ")}`
-                      : "Selecione colaboradores"}
-                  </button>
-
-                  {isOpen && (
-                    <div className="absolute z-10 mt-2 w-full bg-[#fff9] backdrop-blur-[7px] rounded shadow-md max-h-[300px] overflow-y-auto">
-                      {colaboradores.map((colaborador) => (
-                        <label
-                          key={colaborador.id}
-                          className="flex items-center px-4 py-2 hover:bg-gradient-to-r text-[#222] from-[#fff0] to-[#000e2533] hover:text-black cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={chamadorSelecionado.includes(`${colaborador.primeiro_nome} ${colaborador.sobrenome}`)}
-                            onChange={() => toggleOption(`${colaborador.primeiro_nome} ${colaborador.sobrenome}`)}
-                            className="mr-2"
-                          />
-                          {`${colaborador.primeiro_nome} ${colaborador.sobrenome}`}
-                        </label>
-                      ))}
-                    </div>
-                  )}
+                <div className="asd flex pt-3 gap-3">
+                  <div ref={dropdownRef} className="relative inline-block w-[87%]">
+                    <button
+                      type="button"
+                      onClick={() => setIsOpen(!isOpen)}
+                      className="w-full font-medium rounded text-left bg-gray-100 shadow-sm px-4 py-2 cursor-pointer focus:ring-2 focus:outline-1 focus:ring-[#000e2533]0"
+                    >
+                      {chamadorSelecionado.length > 0
+                        ? `Chamadores: ${chamadorSelecionado.join(", ")}`
+                        : "Selecione colaboradores"}
+                    </button>
+                    {isOpen && (
+                      <div className="absolute z-10 mt-2 w-full bg-[#fff9] backdrop-blur-[7px] rounded shadow-md max-h-[300px] overflow-y-auto">
+                        {colaboradores.map((colaborador) => (
+                          <label
+                            key={colaborador.id}
+                            className="flex items-center px-4 py-2 hover:bg-gradient-to-r text-[#222] from-[#fff0] to-[#000e2533] hover:text-black cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={chamadorSelecionado.includes(`${colaborador.primeiro_nome} ${colaborador.sobrenome}`)}
+                              onChange={() => toggleOption(`${colaborador.primeiro_nome} ${colaborador.sobrenome}`)}
+                              className="mr-2"
+                            />
+                            {`${colaborador.primeiro_nome} ${colaborador.sobrenome}`}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className='bg-gradient-to-br from-gray-500 to-gray-700 cursor-pointer text-white font-bold flex items-center px-2 rounded shadow-sm hover:bg-gradient-to-br hover:from-green-600 hover:to-green-800 hover:text-gray-200 hover:shadow-[0px_0px_18px_10px_#e7000b12] duration-600' onClick={() => setTodosAtivos(!todosAtivos)}>ATIVOS</div>
+                  <div className='bg-gradient-to-br from-gray-500 to-gray-700 cursor-pointer text-white font-bold flex items-center px-2 rounded shadow-sm hover:bg-gradient-to-br hover:from-red-600 hover:to-red-800 hover:text-gray-200 hover:shadow-[0px_0px_18px_10px_#e7000b12] duration-600' onClick={() => setChamadorSelecionado([])}>RESET</div>
                 </div>
 
                 <div className='h-[400px]'>
