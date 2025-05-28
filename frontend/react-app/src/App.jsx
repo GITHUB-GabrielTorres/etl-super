@@ -12,6 +12,25 @@
   import InputDeData from './components/filters/InputDeData/InputDeData'
   import { formatDate } from './utils/formatter'
 
+
+  // Faixa no svg do gráfico
+  const FaixaHorizontal = ({ yScale, innerWidth }) => {
+    const y1 = yScale(50)
+    const y2 = yScale(0)
+
+    return (
+      <g>
+        <rect
+          x={0}
+          y={y1}
+          width={innerWidth}
+          height={y2 - y1}
+          fill="#ff000033" // vermelho com transparência
+        />
+      </g>
+    )
+  }
+  
   function App() {
     // Data linechart 
     const [ligacoes, setLigacoes] = useState([])
@@ -302,7 +321,19 @@
 
                 <div className='h-[400px]'>
                   <ResponsiveLine 
+                  // Configs Gerais
                   data={ligacoes ? ligacoes : []}
+                  layers={[
+                    FaixaHorizontal, // 👈 fundo colorido vem primeiro
+                    'grid',
+                    'axes',
+                    'lines',
+                    'points',
+                    'slices',
+                    'mesh',
+                    'legends'
+                  ]}
+
                   // Config da linha
                   lineWidth={3}
                   pointSize={0} // 0 remove os pontos
@@ -310,7 +341,25 @@
                   enablePointLabel={true}
                   pointLabelYOffset={-20} // distância do rótulo para cima
                   
-                  
+                  // Marcador
+                  markers={[
+                    {
+                      axis: 'y',
+                      value: 100,
+                      legend: 'Média',
+                      lineStyle: {
+                        stroke: '#002f4999',
+                        strokeWidth: 2,
+                        strokeDasharray: '10 20'
+                      },
+                      textStyle: {
+                        fill: '#002f4999',
+                        fontSize: 17
+                      }
+
+                    }
+                  ]}
+
                   // Eixos
                   yScale={{ type: 'linear', min: '0', max: 'auto', stacked: false, reverse: false }}
                   // AQUI entra o gradiente do site
