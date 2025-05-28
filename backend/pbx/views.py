@@ -1,12 +1,8 @@
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
-from django.db.models.functions import TruncDate, Concat, TruncMonth, TruncTime, ExtractHour, ExtractMinute
-from django.http import JsonResponse
+from django.db.models.functions import TruncDate, Concat, TruncMonth, TruncTime, ExtractHour, ExtractMinute, TruncYear, TruncWeek, TruncDay, ExtractIsoYear, ExtractMonth
 from django.db.models import Count, Value, CharField, Q, OuterRef, Subquery, DateField, When, Case, IntegerField
 from rest_framework.response import Response
-from datetime import date
-from django.views import View
-from django.db import models
 from .serializers import ContatosPBXSerializer
 import pandas as pd
 import numpy as np
@@ -40,7 +36,7 @@ def gerar_dataframe_ligacoes(request):
     if dias_possiveis:
         filtros['dia_da_semana__in'] = dias_possiveis
 
-    ### Parte para períodos
+    ### Parte para datas
     dia_inicial = request.GET.get('inicio','')
     dia_final = request.GET.get('fim','')
         
@@ -50,6 +46,18 @@ def gerar_dataframe_ligacoes(request):
     # Adiciona periodo final
     if dia_final:
         filtros['dia__lte'] = dia_final
+
+    # Parte responsável pelos períodos
+    periodos_validos = ['madrugada', 'manha', 'tarde', 'noite']
+    periodos = request.GET.get('periodos', '')  # ← ADICIONA VALOR PADRÃO
+
+    if periodos:
+        periodos = [c.strip() for c in periodos.split(',') if c.strip()]
+        # Adiciona apenas os periodos válidos
+        periodos_filtrados = [p for p in periodos if p in periodos_validos]
+
+        if periodos_filtrados:
+            filtros['periodo__in'] = periodos_filtrados
 
     ### ! Parte responsável por filtrar os chamadores
     chamadores = request.GET.get('chamadores', '') # Virá algo como 'Gabriel Torres, Aline Moreira'
@@ -97,9 +105,24 @@ def gerar_dataframe_ligacoes(request):
         ContatosPBX.objects.all()
         .filter(~Q(quem_recebeu_ligacao = 'h')) # filtra o que não foi ligação
         .annotate(
-            dia=TruncDate('data_de_contato'),
-            horario=TruncTime('data_de_contato'),
+            ano=TruncYear('data_de_contato'),
+            ano_cod=ExtractIsoYear('data_de_contato'),
+            mes=TruncMonth('data_de_contato'),
+            mes_cod=ExtractMonth('data_de_contato'),
+            semestre=Case(
+                When(mes_cod__in=[1,2,3,4,5,6], then=Value(1)),
+                When(mes_cod__in=[7,8,9,10,11,12], then=Value(2))
+            ),
+            trimestre=Case(
+                When(mes_cod__in=[1,2,3], then=Value(1)),
+                When(mes_cod__in=[4,5,6], then=Value(2)),
+                When(mes_cod__in=[7,8,9], then=Value(3)),
+                When(mes_cod__in=[10,11,12], then=Value(4)),
+            ),
+            semana=TruncWeek('data_de_contato'),
             dia_da_semana=ExtractWeekDay('data_de_contato'),
+            dia=TruncDay('data_de_contato'),
+            horario=TruncTime('data_de_contato'),
             hora=ExtractHour('data_de_contato'),
             minuto=ExtractMinute('data_de_contato'),
             periodo=Case(
@@ -127,14 +150,63 @@ def gerar_dataframe_ligacoes(request):
 
     return df
 
-
+# TODO ########## LIGACOES2 ##########
 class Ligacoes2(APIView):
     def get(self, request):
 
-        agrupamento = [] # Periodo, status, chamador, dia, hora
+        agrupamento = request.GET.get('agrupamento', 'chamador') # Periodo, status, chamador, dia, hora
+
+        # ? Parte responsável pelo Eixo
+        # eixo = request.GET.get('eixo','dia')
+        # if eixo in ['dia','semana','mes','ano']:
+        #     agrupamento.append(eixo)
+        # else: agrupamento.append('dia')
+        # * FIlTROS
+        ## ! dia da semana = list - Lista dos dias semanais que devem ser filtrados
+        ###[0,1,2,3,4,5,6]
+
+        ## ! eixo = string - Definição do eixo X, se por dia, por mês, por ano, ou por semana.
+        ### dia
+        ### semana
+        ### mes
+        ### ano
+
+        ## ! agrupamento = string - Sobre qual valor será agrupado o cálculo - Chamadores, Periodo, Sem agrupamento, Status
+        ### chamador
+        ### periodo
+        ### nogroup
+        ### status
+
+        ## ! periodos_dia = list - Quais os períodos devem ser filtrados
+        ### [madrugada, manha, tarde, noite]
+
+        ## * calculo = string - Definição do cálculo dos dados, se MÉDIA_MÓVEL ou SOMA_TOTAL ou % de Atendidas
+        ### media_movel
+        ### soma_total
+        ### porcentagem_atendimentos
+
+        ## * periodos_media_movel = int - Quantos períodos para o cálculo da MÉDIA_MÓVEL
+        ### 2
+
+        ## * status = list - Filtro de status na visualização
+        ### [atendido, ocupado, falhou, sem resposta]
+
+        ## ! inicio = date - Data inicial dos dados
+        ### 2025-05-01
+
+        ## ! fim = date - Data final dos dados
+        ### 2025-05-10
+
+        ## * variacao = bool - Se será mostrado o valor ou só sua variação com o período anterior
+        ### true
+        ### 1
+
+        ## ! chamadores = list - Lista dos chamadores que devem ser filtrados
+        ### [Gabriel Torres, Igor Vaz]
+
 
         ### Parte responsável pelo modo
-        modo = request.GET.get('modo_y','ligacoes_totais') # media_movel || ligacoes_totais || variacao
+        modo = request.GET.get('modo','ligacoes_totais') # media_movel || ligacoes_totais
         media_movel_periodos = int(request.GET.get('periodo_media_movel',1))
 
         ### Parte responsável pelos tipos de periodos
@@ -143,10 +215,41 @@ class Ligacoes2(APIView):
         # Os dados brutos
         dados = gerar_dataframe_ligacoes(request)
 
-        if agrupamento:
-            dados = dados.groupby(agrupamento).size().reset_index(name='quantidade')
+        resultado = []
 
-        return Response(dados.to_dict(orient='records'))
+        # Se o agrupamento for nogroup ele vai criar um atributo novo pra agrupar tudo em um id só
+        if agrupamento == 'nogroup':
+            # Quantas vezes aparece em cada dia.
+            dados = dados.groupby('dia').size().reset_index(name='quantidade')
+            dados = dados.sort_values('dia')
+
+            if modo == 'media_movel':
+                dados['quantidade'] = dados.groupby(agrupamento)['quantidade'].rolling(window=media_movel_periodos, min_periods=1).mean().reset_index(level=0, drop=True)
+            # Cria a coluna 'id_fixo' com o valor Total em todas instâncias.
+            dados['id_fixo'] = 'Total'
+            # Defome a variável como o 'id_fixo'
+            coluna_id = 'id_fixo'
+        else:
+            # Agrupa pelo que estiver em agrupamento e também por dia.
+            dados = dados.groupby([agrupamento, 'dia']).size().reset_index(name='quantidade')
+            dados = dados.sort_values('dia')
+            if modo == 'media_movel':
+                dados['quantidade'] = dados.groupby(agrupamento)['quantidade'].rolling(window=media_movel_periodos, min_periods=1).mean().reset_index(level=0, drop=True)
+            # Define a coluna a ser o id pelo que estiver em coluna_id.
+            coluna_id = agrupamento
+
+        # Divide o DataFrame pelos valores únicos na coluna escolhida (ex: 'colaborador')
+        for nome, grupo in dados.groupby(coluna_id):
+            # Insere em resultado
+            resultado.append({
+                "id": nome,  # Ex: "Gabriel Torres"
+                "data": [
+                    # Para cada linha do grupo, monta um ponto com a data e quantidade
+                    {"x": str(row["dia"]), "y": row["quantidade"]} for _, row in grupo.iterrows()
+                ]
+            })
+
+        return Response(resultado)
 
 
 
