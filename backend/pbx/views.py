@@ -24,7 +24,7 @@ def gerar_dataframe_ligacoes(request):
     ### Os filtros gerais ficarão aqui
     filtros = {}
 
-    ### Parte responsável pelo filtro de dias habilitados
+    ### ? Parte responsável pelo filtro de DIAS DA SEMANA HABILITADOS
     # Caso não haja nenhum filtro de dias, todos os dias serão adicionados
     dias_possiveis = request.GET.get('dias', '0,1,2,3,4,5,6') # Sábado é 0 e sexta é 6
     # Se houver algo na variável dias_possiveis, ele irá adicionar todos na lista
@@ -36,7 +36,7 @@ def gerar_dataframe_ligacoes(request):
     if dias_possiveis:
         filtros['dia_da_semana__in'] = dias_possiveis
 
-    ### Parte para datas
+    ### ? Parte responsável PELAS DATAS DE INÍCIO E FIM
     dia_inicial = request.GET.get('inicio','')
     dia_final = request.GET.get('fim','')
         
@@ -47,7 +47,7 @@ def gerar_dataframe_ligacoes(request):
     if dia_final:
         filtros['dia__lte'] = dia_final
 
-    # Parte responsável pelos períodos
+    ### ? Parte responsável pelos PERIODOS
     periodos_validos = ['madrugada', 'manha', 'tarde', 'noite']
     periodos = request.GET.get('periodos', '')  # ← ADICIONA VALOR PADRÃO
 
@@ -59,7 +59,7 @@ def gerar_dataframe_ligacoes(request):
         if periodos_filtrados:
             filtros['periodo__in'] = periodos_filtrados
 
-    ### ! Parte responsável por filtrar os chamadores
+    ### ? Parte responsável por filtrar os CHAMADORES
     chamadores = request.GET.get('chamadores', '') # Virá algo como 'Gabriel Torres, Aline Moreira'
     chamadores = [c.strip() for c in chamadores.split(',')]
     # Só adicionamos o filtro de 'chamador' se a lista de chamadores não for vazia
@@ -99,6 +99,26 @@ def gerar_dataframe_ligacoes(request):
 
         # Agora sim: usa essa lista de nomes errados como filtro nas ligações
         filtros['chamador__in'] = list(nomes_errados)
+
+    ### ? Parte responsável pelos STATUS
+    # Lista com os status corretos, para um de-para
+    status_corretos = {
+        'atendido': 'ANSWERED',
+        'ocupado': 'BUSY',
+        'falhou': 'FAILED',
+        'sem resposta': 'NO ANSWER',
+    }
+    # Pega as informações passadas no querystring
+    status = request.GET.get('status','')
+    # Transforma o resultado da querystring em uma lista, separando os itens em vírgulas e tirando os espaços no início e fim. Também só faz isso caso esteja em status_corretos
+    status = [s.strip() for s in status.split(',') if s.strip() in status_corretos]
+    # Resultado esperado: [atendido, ocupado, falhou, sem resposta]
+    status = [status_corretos[s] for s in status]
+    # Resultado esperado: [ANSWERED, BUSY, FAILED, NO ANSWER]
+
+    # Caso tenha algo, insere em filtros pra ser filtrado na consulta
+    if status:
+        filtros['status__in'] = status
 
 
     dados = (
@@ -150,6 +170,19 @@ def gerar_dataframe_ligacoes(request):
 
     return df
 
+# ! ------------------------------------------
+# ! ------------------------------------------
+class DadosCrus(APIView):
+    def get(self, request):
+        dados = gerar_dataframe_ligacoes(request)
+        # dados = dados.head(10)
+        dados = dados.groupby('status').size().reset_index(name='quantidade')
+
+
+        return Response(dados.to_dict(orient="records"))
+# ! ------------------------------------------
+# ! ------------------------------------------
+
 # TODO ########## LIGACOES2 ##########
 class Ligacoes2(APIView):
     def get(self, request):
@@ -188,7 +221,7 @@ class Ligacoes2(APIView):
         ## * periodos_media_movel = int - Quantos períodos para o cálculo da MÉDIA_MÓVEL
         ### 2
 
-        ## * status = list - Filtro de status na visualização
+        ## ! status = list - Filtro de status na visualização
         ### [atendido, ocupado, falhou, sem resposta]
 
         ## ! inicio = date - Data inicial dos dados
@@ -221,6 +254,7 @@ class Ligacoes2(APIView):
         if agrupamento == 'nogroup':
             # Quantas vezes aparece em cada dia.
             dados = dados.groupby('dia').size().reset_index(name='quantidade')
+            # Ordena por dia
             dados = dados.sort_values('dia')
 
             if modo == 'media_movel':
