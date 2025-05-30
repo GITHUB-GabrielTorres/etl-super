@@ -100,26 +100,6 @@ def gerar_dataframe_ligacoes(request):
         # Agora sim: usa essa lista de nomes errados como filtro nas ligações
         filtros['chamador__in'] = list(nomes_errados)
 
-    ### ? Parte responsável pelos STATUS
-    # Lista com os status corretos, para um de-para
-    status_corretos = {
-        'atendido': 'ANSWERED',
-        'ocupado': 'BUSY',
-        'falhou': 'FAILED',
-        'sem resposta': 'NO ANSWER',
-    }
-    # Pega as informações passadas no querystring
-    status = request.GET.get('status','')
-    # Transforma o resultado da querystring em uma lista, separando os itens em vírgulas e tirando os espaços no início e fim. Também só faz isso caso esteja em status_corretos
-    status = [s.strip() for s in status.split(',') if s.strip() in status_corretos]
-    # Resultado esperado: [atendido, ocupado, falhou, sem resposta]
-    status = [status_corretos[s] for s in status]
-    # Resultado esperado: [ANSWERED, BUSY, FAILED, NO ANSWER]
-
-    # Caso tenha algo, insere em filtros pra ser filtrado na consulta
-    if status:
-        filtros['status__in'] = status
-
 
     dados = (
         ContatosPBX.objects.all()
@@ -175,11 +155,53 @@ def gerar_dataframe_ligacoes(request):
 class DadosCrus(APIView):
     def get(self, request):
         dados = gerar_dataframe_ligacoes(request)
+
+
+        ### ? Parte responsável pelos STATUS
+        # Lista com os status corretos, para um de-para
+        status_corretos = {
+            'atendido': 'ANSWERED',
+            'ocupado': 'BUSY',
+            'falhou': 'FAILED',
+            'sem resposta': 'NO ANSWER',
+        }
+        # Pega as informações passadas no querystring
+        status = request.GET.get('status','')
+        # Transforma o resultado da querystring em uma lista, separando os itens em vírgulas e tirando os espaços no início e fim. Também só faz isso caso esteja em status_corretos
+        status = [s.strip() for s in status.split(',') if s.strip() in status_corretos]
+        # Resultado esperado: [atendido, ocupado, falhou, sem resposta]
+        status = [status_corretos[s] for s in status]
+        # Resultado esperado: [ANSWERED, BUSY, FAILED, NO ANSWER]
+#?
+#?
+#?
+#?
+#?
+#?
+#?
+#?
         # dados = dados.head(10)
-        dados = dados.groupby('status').size().reset_index(name='quantidade')
+        # dados = dados.groupby('status').size().reset_index(name='quantidade')
+        dados_por_status = dados.groupby(['status','dia']).size().reset_index(name='quantidade')
+        total_por_dia = dados.groupby('dia').size().reset_index(name='total_do_dia')
 
+        dados = total_por_dia.merge(dados_por_status, on='dia')
+        dados['porc'] = dados['quantidade'] / dados['total_do_dia']
+        # dados = dados.drop(['quantidade','total_do_dia'], axis=1)
+        dados = dados[ dados['status'].isin(status)]
+        dados = dados.groupby('dia')['porc'].sum().reset_index()
 
-        return Response(dados.to_dict(orient="records"))
+#?
+#?
+#?
+#?
+#?
+#?
+#?
+#?
+#?
+#?
+        return Response(dados.to_dict(orient='records'))
 # ! ------------------------------------------
 # ! ------------------------------------------
 
@@ -188,6 +210,9 @@ class Ligacoes2(APIView):
     def get(self, request):
 
         agrupamento = request.GET.get('agrupamento', 'chamador') # Periodo, status, chamador, dia, hora
+
+
+
 
         # ? Parte responsável pelo Eixo
         # eixo = request.GET.get('eixo','dia')
@@ -216,9 +241,9 @@ class Ligacoes2(APIView):
         ## * calculo = string - Definição do cálculo dos dados, se MÉDIA_MÓVEL ou SOMA_TOTAL ou % de Atendidas
         ### media_movel
         ### soma_total
-        ### porcentagem_atendimentos
+        ### porcentagem_atendidos
 
-        ## * periodos_media_movel = int - Quantos períodos para o cálculo da MÉDIA_MÓVEL
+        ## ! periodos_media_movel = int - Quantos períodos para o cálculo da MÉDIA_MÓVEL
         ### 2
 
         ## ! status = list - Filtro de status na visualização
@@ -237,43 +262,110 @@ class Ligacoes2(APIView):
         ## ! chamadores = list - Lista dos chamadores que devem ser filtrados
         ### [Gabriel Torres, Igor Vaz]
 
+        # ? Parte responsável pelo CÁLCULO
+        # ? São os seguintes: media_movel, soma_total, porcentagem_atendidos
+        # Lista com os status corretos, para um de-para
+        status_corretos = {
+            'atendido': 'ANSWERED',
+            'ocupado': 'BUSY',
+            'falhou': 'FAILED',
+            'sem resposta': 'NO ANSWER',
+        }
+        # Pega as informações passadas no querystring
+        status = request.GET.get('status','')
+        # Transforma o resultado da querystring em uma lista, separando os itens em vírgulas e tirando os espaços no início e fim. Também só faz isso caso esteja em status_corretos
+        status = [s.strip() for s in status.split(',') if s.strip() in status_corretos]
+        # Resultado esperado: [atendido, ocupado, falhou, sem resposta]
+        status = [status_corretos[s] for s in status]
+        # Resultado esperado: [ANSWERED, BUSY, FAILED, NO ANSWER]
 
         ### Parte responsável pelo modo
-        modo = request.GET.get('modo','ligacoes_totais') # media_movel || ligacoes_totais
+        modo = request.GET.get('modo','ligacoes_totais') # media_movel || ligacoes_totais || porcentagem_status
         media_movel_periodos = int(request.GET.get('periodo_media_movel',1))
 
+
+
         ### Parte responsável pelos tipos de periodos
-        periodo_desejado = request.GET.get('tipo_periodo', 'dia') # dia ou mes
+        periodo_desejado = request.GET.get('tipo_periodo', 'dia') # TODO Aqui se definirá o eixo x. Portanto: Ano, Semestre, Trimestre, Mês, Semana, Dia
 
         # Os dados brutos
         dados = gerar_dataframe_ligacoes(request)
+        # ! O gráfico será formado de 3 coisas principais, QUEM, QUANTO E QUANDO. Quem é o ID, Quanto é a quantidade (eixo Y), e Quando são os períodos (eixo X).
+        # o_que_cada_coisa_exemplo = {
+        #     id1: [
+        #         {'x': 'dia 1', 'y': '50'},
+        #         {'x': 'dia 2', 'y': '52'},
+        #         {'x': 'dia 3', 'y': '54'},
+        #     ],
+        #     id2: [
+        #         {'x': 'dia 1', 'y': '56'},
+        #         {'x': 'dia 2', 'y': '58'},
+        #         {'x': 'dia 3', 'y': '60'},
+        #     ]
+        # }
+        # Agrupador será string: # Periodo, status, chamador, hora # TODO Aqui se definirá os ids (cada linha)
+        # TODO Aqui se definirá o quantidade (eixo Y)
 
-        resultado = []
+        if modo == 'soma_total':
+            # bloco com agrupamento
+            # output: { nome=id, dia, quantidade}
+            # Faz o cálculo de soma_total, que é na verdade apenas um size
+            dados = dados.groupby([agrupamento, periodo_desejado]).size().reset_index(name='quantidade')
+            # Resultado esperado: { agrupamento (ex.: chamador), periodo_desejado (ex.: dia), quantidade (o calculo feito) }
+        elif modo == 'media_movel':
+            # bloco com agrupamento
+            # output: { nome=id, dia, quantidade}
+            dados = dados.groupby([agrupamento, periodo_desejado]).size().reset_index(name='soma_total')
+            dados['quantidade'] = dados.groupby([agrupamento])['soma_total'].rolling(window=media_movel_periodos, min_periods=1).mean().reset_index(level=0, drop=True)
+            # Resultado esperado: { agrupamento, periodo_desejado, soma_total, quantidade }
 
+        elif modo == 'porcentagem_status':
+            pass
+            # bloco com agrupamento
+            # output: { nome=id, dia, quantidade}
         # Se o agrupamento for nogroup ele vai criar um atributo novo pra agrupar tudo em um id só
-        if agrupamento == 'nogroup':
-            # Quantas vezes aparece em cada dia.
-            dados = dados.groupby('dia').size().reset_index(name='quantidade')
-            # Ordena por dia
-            dados = dados.sort_values('dia')
+        # ! if agrupamento == 'nogroup':
+        #     # Quantas vezes aparece em cada dia.
+        #     dados = dados.groupby('dia').size().reset_index(name='quantidade')
+        #     # Resultado esperado: { dia, quantidade }
+        #     # Ordena por dia
+        #     dados = dados.sort_values('dia')
 
-            if modo == 'media_movel':
-                dados['quantidade'] = dados.groupby(agrupamento)['quantidade'].rolling(window=media_movel_periodos, min_periods=1).mean().reset_index(level=0, drop=True)
-            # Cria a coluna 'id_fixo' com o valor Total em todas instâncias.
-            dados['id_fixo'] = 'Total'
-            # Defome a variável como o 'id_fixo'
-            coluna_id = 'id_fixo'
-        else:
-            # Agrupa pelo que estiver em agrupamento e também por dia.
-            dados = dados.groupby([agrupamento, 'dia']).size().reset_index(name='quantidade')
-            dados = dados.sort_values('dia')
-            if modo == 'media_movel':
-                dados['quantidade'] = dados.groupby(agrupamento)['quantidade'].rolling(window=media_movel_periodos, min_periods=1).mean().reset_index(level=0, drop=True)
-            # Define a coluna a ser o id pelo que estiver em coluna_id.
-            coluna_id = agrupamento
+        #     if modo == 'media_movel':
+        #         dados['quantidade'] = dados.groupby(agrupamento)['quantidade'].rolling(window=media_movel_periodos, min_periods=1).mean().reset_index(level=0, drop=True)
+        #     elif modo == 'porcentagem_status':
+        #         dados_por_status = dados.groupby(['status','dia']).size().reset_index(name='quantidade_ligacoes')
+        #         total_por_dia = dados.groupby('dia').size().reset_index(name='total_do_dia')
 
+        #         dados = total_por_dia.merge(dados_por_status, on='dia')
+        #         dados['quantidade'] = dados['quantidade_ligacoes'] / dados['total_do_dia']
+        #         # dados = dados.drop(['quantidade','total_do_dia'], axis=1)
+        #         dados = dados[ dados['status'].isin(status)]
+        #         dados = dados.groupby('dia')['quantidade'].sum().reset_index()
+        #     # Cria a coluna 'id_fixo' com o valor Total em todas instâncias.
+        #     dados['id_fixo'] = 'Total'
+        #     # Defome a variável como o 'id_fixo'
+        #     coluna_id = 'id_fixo'
+        # else:
+        #     # Agrupa pelo que estiver em agrupamento e também por dia.
+        #     dados = dados.groupby([agrupamento, 'dia']).size().reset_index(name='quantidade')
+        #     dados = dados.sort_values('dia')
+        #     if modo == 'media_movel':
+        #         dados['quantidade'] = dados.groupby(agrupamento)['quantidade'].rolling(window=media_movel_periodos, min_periods=1).mean().reset_index(level=0, drop=True)
+        #     # Define a coluna a ser o id pelo que estiver em coluna_id.
+        # !    coluna_id = agrupamento
+
+
+        # ! Aqui faz a organização para o NIVO
+        # ! Input necessário: {nome (vai ser usado para id), quantidade e dia (periodo) }
+        # input_ideal = {
+        #     dia: ...,
+        #     nome: ...,
+        #     quantidade: ...,
+        # }
+        resultado = []
         # Divide o DataFrame pelos valores únicos na coluna escolhida (ex: 'colaborador')
-        for nome, grupo in dados.groupby(coluna_id):
+        for nome, grupo in dados.groupby(agrupamento):
             # Insere em resultado
             resultado.append({
                 "id": nome,  # Ex: "Gabriel Torres"
@@ -283,7 +375,8 @@ class Ligacoes2(APIView):
                 ]
             })
 
-        return Response(resultado)
+        return Response(dados.to_dict(orient='records'))
+        # return Response(resultado)
 
 
 
