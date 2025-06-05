@@ -284,11 +284,15 @@ class Ligacoes2(APIView):
         ## ! status = list - Filtro de status na visualização (Precisa ser feito aqui, e não na função de gerar_dataframe_ligacoes)
         ###? [atendido, ocupado, falhou, sem resposta]
 
-        ## ! [CASO CALCULO == PORCENTAGEM_STATUS] sobre_todos_com_todos_status = bool - Alterador do eixo Y - Aqui se define se o cálculo será feito sobre todos os status ou somente pelos filtrados
+        ## ! [CASO CALCULO == PORCENTAGEM_STATUS] todos_status = bool - Alterador do eixo Y - Aqui se define se o cálculo será feito sobre todos os status ou somente pelos filtrados
         #? 1 / true
         #? 0 / false
 
-        ## TODO variacao = bool - Alterador do eixo Y - Se será mostrado o valor ou só sua variação com o período anterior
+        ## ! [CASO CALCULO == PORCENTAGEM_STATUS] porcentagem_sobre_si = bool - Alterador do eixo Y - Aqui se define se o cálculo será feito sobre o grupo ou se deixará o filtro de grupo de fora
+        #? 1 / true
+        #? 0 / false
+
+        ## pendente i- variacao = bool - Alterador do eixo Y - Se será mostrado o valor ou só sua variação com o período anterior
         ###? true
         ###? 1
 
@@ -343,12 +347,12 @@ class Ligacoes2(APIView):
         # Se for 1 ou true, então verdadeiro, se não, falso.
         porcentagem_sobre_si = porcentagem_sobre_si in ['1','true']
 
-        ### groupp Parte responsável por pegar SOBRE_TODOS_COM_TODOS_STATUS
+        ### groupp Parte responsável por pegar todos_status
         ### ? Só aplicável se CALCULO == PORCENTAGEM_STATUS. É um Boleano simples. Se esse positivo, portanto todos os status serão considerados, se não, somente os filtrados
         # ? Exemplo: Caso esteja filtrado atendidos, e aqui esteja falso, e não seja uma análise sobre si, e o dado esteja manhã: 52%. Significa que 52% dos atendidos são de manhã. Caso ative esse, todos os status seriam considerados, e os 52% se tornariam, por exemplo, 20%. Significa que 20% é a representação de todas atendidos de manhã com base em todas ligações de todos status.
-        sobre_todos_com_todos_status = request.GET.get('sobre_todos_com_todos_status','1')
+        todos_status = request.GET.get('todos_status','1')
         # Se for 1 ou true, então verdadeiro, se não, falso.
-        sobre_todos_com_todos_status = sobre_todos_com_todos_status in ['1','true']
+        todos_status = todos_status in ['1','true']
 
         ### groupp Parte responsável pelos TIPOS DE PERIODO
         ### ? Aqui se definirá o eixo x. Portanto: Ano, Semestre, Trimestre, Mês, Semana, Dia
@@ -471,73 +475,66 @@ class Ligacoes2(APIView):
         # Caso o calculo seja porcentagem_status ele irá pegar o total, depois o que a pessoa conseguiu, e dividirá um pelo outro, deixando apenas o resultado.
         # Há uma divisão com IF, pois o 'porcentagem_sobre_si' decide se será considerado apenas os números do grupo, ou se tudo.
         elif calculo == 'porcentagem_status':
-            # ! porcentagem_sobre_si
-            # ! sobre_todos_com_todos_status
-            # ! filtro: atendido, ocupado etc.
 
-            # ! há quatro totais nas quais o seu número de ligações vai ser dividido.
-            # ? total do grupo, filtrado pelos status -- sem sentido, pois sempre dará 100%.
-            # ? total do grupo, sem filtro de status [porcentagem_sobre_si + sobre_todos_com_todos_status]
-            # ? total geral, filtrado pelos status [] - ambos falsos
-            # ? total geral, filtrado sem filtro de status [sobre_todos_com_todos]
-            """ 
-            pega o size dele filtrado
+            # pendente - Caso agrupamento nogroup e periodo ok
+            # pendente i- { nome = total, periodo_data, quantidade}
 
-            pega o total
+            # pendente - Caso agrupamento ok e periodo nogroup
+            # pendente i- { nome = agrupamento, periodo_data = 'total', quantidade = calculo normal}
+            
+            # pendente - Caso ambos nogroup
+            # pendente icheck- { nome = total, periodo_data = total, quantidade = calculo normal}
 
-            divide o size dele pelo total certo
-
-            arruma as colunas
-            """
-            # total_grupo_filtrado é o total atingido do grupo. É o dividendo.
-            total_grupo_filtrado = dados[dados['status'].isin(status)].groupby([agrupamento, periodo_desejado]).size().reset_index(name='atingido')
-
-            # Os divisores possíveis.
-            total_grupo_todos = dados[dados['status'].isin(list(status_corretos.values()))].groupby([agrupamento, periodo_desejado]).size().reset_index(name='total')
-            total_geral_todos = dados[dados['status'].isin(list(status_corretos.values()))].groupby([periodo_desejado]).size().reset_index(name='total')
-            total_geral_filtrado = dados[dados['status'].isin(status)].groupby([periodo_desejado]).size().reset_index(name='total')
-
-            total_selecionado = ''
-
-            # Aqui fica definido qual total usar para o porcentagem
-            if porcentagem_sobre_si and sobre_todos_com_todos_status:
-                total_selecionado = total_grupo_todos
-            elif not porcentagem_sobre_si and sobre_todos_com_todos_status:
-                total_selecionado = total_geral_todos
-            else:
-                total_selecionado = total_geral_filtrado
-
-            # TODO continuar fazendo o cálculo, usando o Todos. (não garantido que o todos está correto, é meio confuso.)
-
-            # Caso seja sobre si
-            if porcentagem_sobre_si:
-                # Pega a coluna de total, agrupando pelo grupo (agrupamento)
-                com_total = dados[dados['status'].isin(list(status_corretos.values()))].groupby([agrupamento, periodo_desejado]).size().reset_index(name='total')
-                # Filtra apenas os status desejados
-                filtrado = dados[dados['status'].isin(status)].groupby([agrupamento, periodo_desejado]).size().reset_index(name='atingido')
-
-                # Junta tudo olhando o periodo e o grupo
-                juncao = com_total.merge(filtrado, on=[periodo_desejado, agrupamento])
-                juncao['quantidade'] = juncao['atingido'] / juncao['total']
-                renomeado = juncao.rename(columns={'ano':'nome'})
-                renomeado = juncao
-                resultado = renomeado.drop(['total','atingido'], axis=1)
-            else: 
-                # Pega a coluna de total, porém diferente do anterior, ele não agrupará pelo grupo
-                if sobre_todos_com_todos_status:
-                    com_total = dados[dados['status'].isin(list(status_corretos.values()))].groupby([periodo_desejado]).size().reset_index(name='total')
+            # Caso ambos nogroup ele retorna a porcentagem daquele status no total.
+            if not groupby_usados:
+                atingido = len(dados[dados['status'].isin(status)])
+                total_grupo_filtrado = len(dados[dados['status'].isin(list(status_corretos.values()))])
+                dados = pd.DataFrame([{
+                    'nome':'Porcentagem total',
+                    'quantidade':atingido / total_grupo_filtrado,
+                }])
+            elif len(groupby_usados) == 1:
+                atingido = dados[dados['status'].isin(status)].groupby(groupby_usados).size().reset_index(name='atingido')
+                if porcentagem_sobre_si:
+                    total = dados[dados['status'].isin(list(status_corretos.values()))].groupby(groupby_usados).size().reset_index(name='total')
+                    juncao = total.merge(atingido, on=groupby_usados)
+                    juncao['quantidade'] = juncao['atingido'] / juncao['total']
+                    juncao['periodo_data'] = 'sem_periodo'
+                    juncao = juncao[[groupby_usados[0], 'quantidade','periodo_data']].rename(columns={
+                        groupby_usados[0]:'nome'
+                    })
+                    dados = juncao
                 else:
-                    com_total = dados[dados['status'].isin(status)].groupby([periodo_desejado]).size().reset_index(name='total')
-                # Filtra apenas os status desejados
-                filtrado = dados[dados['status'].isin(status)].groupby([agrupamento, periodo_desejado]).size().reset_index(name='atingido')
-                # Junta tudo olhando o periodo
-                juncao = com_total.merge(filtrado, on=[periodo_desejado])
-                juncao['quantidade'] = juncao['atingido'] / juncao['total']
-                # renomeado = juncao.rename(columns={'ano':'dia'})
-                resultado = juncao.drop(['total','atingido'], axis=1)
+                    total = dados[dados['status'].isin(list(status_corretos.values()))].groupby(groupby_usados).size().reset_index(name='total')
+                    atingido['total'] = len(dados[dados['status'].isin(list(status_corretos.values()))])
+                    dados = atingido
+                    dados['quantidade'] = dados['atingido'] / dados['total']
+                    dados['periodo_data'] = 'sem_periodo'
+                    dados = dados[[groupby_usados[0], 'quantidade', 'periodo_data']].rename(columns={
+                        groupby_usados[0]: 'nome'
+                    })
+            else:
+                # pendente - VERIFICAR
+                total_grupo_filtrado = dados[dados['status'].isin(status)].groupby(groupby_usados).size().reset_index(name='atingido')
+                # Se não for sobre si ele retira o agrupamento do groupby_usados
+                if not porcentagem_sobre_si and agrupamento in groupby_usados:
+                    groupby_usados.remove(agrupamento)
+                # É pra comparar com todos os status ou somente os filtrados?
+                if todos_status:
+                    total_selecionado = dados[dados['status'].isin(list(status_corretos.values()))].groupby(groupby_usados).size().reset_index(name='total')
+                else:
+                    total_selecionado = dados[dados['status'].isin(status)].groupby(groupby_usados).size().reset_index(name='total')
 
-            # Definição do resultado para uso posterior
-            dados = resultado
+                dados = total_grupo_filtrado.merge(total_selecionado, on=groupby_usados)
+                # OUTPUT: { agrupamento, periodo_desejado, atingido, total }
+                dados['quantidade'] = dados['atingido'] / dados['total']
+                dados = dados[[agrupamento, periodo_desejado, 'quantidade']].rename(columns={
+                    agrupamento: 'nome',
+                    periodo_desejado: 'periodo_data',
+                })
+
+                # Devolve o agrupamento para o groupby_usados
+                groupby_usados.append(agrupamento)
 
         # Se o agrupamento for nogroup ele vai criar um atributo novo pra agrupar tudo em um id só
         # ! if agrupamento == 'nogroup':
