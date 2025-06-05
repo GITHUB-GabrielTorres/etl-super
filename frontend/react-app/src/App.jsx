@@ -9,6 +9,7 @@
 
   import DiasFiltro from './components/filters/filtrosDeDiasSemana/filtroDeDiasSemana'
   import BotaoFiltroOrdenado from './components/filters/BotaoFiltroOrdenado/BotaoFiltroOrdenado'
+  import BotaoAtivoDesativo from './components/filters/BotaoAtivoDesativo/BotaoAtivoDesativo'
   import InputDeData from './components/filters/InputDeData/InputDeData'
   import { formatDate } from './utils/formatter'
 
@@ -35,7 +36,8 @@
     // Data linechart 
     const [ligacoes, setLigacoes] = useState([])
     // Linechart variables
-    const [dias, setDias] = useState([0,1,2,3,4,5,6])
+    const [diasAtivos, setDiasAtivos] = useState([0,1,2,3,4,5,6])
+
     const [colaboradores, setColaboradores] = useState([])
     const [modoY, setModoY] = useState('ligacoes_totais') // ligacoes_totais || media_movel
     const [periodoMediaMovel, setPeriodoMediaMovel] = useState(1)
@@ -83,7 +85,7 @@
       async function PegaLigacoes(){
         try{
           const response = await GetLigacoes({
-            ...(dias && {dias: dias}),
+            ...(diasAtivos && {dias: diasAtivos}),
             ...(chamadorSelecionado && {chamadores: chamadorSelecionado}),
             ...(modoY && {modo_y: modoY}),
             ...(periodoMediaMovel && {periodo_media_movel: periodoMediaMovel}),
@@ -143,14 +145,15 @@
         }
       }
       PegaLigacoes()
-    }, [dias, chamadorSelecionado, modoY, periodoMediaMovel, tipoPeriodo, agrupadoPorChamador, dataInicio, dataFim])
+    }, [diasAtivos, chamadorSelecionado, modoY, periodoMediaMovel, tipoPeriodo, agrupadoPorChamador, dataInicio, dataFim])
 
-    // ! TOGGLES
+
+    // groupp TOGGLES
     const toggleDiaDaSemana = (dia) =>{
-      if (dias.includes(dia)){
-        setDias(dias.filter(d => d !== dia));
+      if (diasAtivos.includes(dia)){
+        setDiasAtivos(diasAtivos.filter(d => d !== dia));
       } else {
-        setDias([...dias, dia])
+        setDiasAtivos([...diasAtivos, dia])
       }
     }
 
@@ -249,7 +252,7 @@
               <div className="relative w-full rounded-xl bg-gradient-to-r from-[#e8e8ee] to-[#f2f2f8] px-2 py-4 shadow-[4px_4px_15px_#c9c9c922] mt-2">
                 <div className="containerMasterFiltros flex gap-5">
                   <div className='containerDiasFiltro'>
-                      <DiasFiltro dias={dias} toggleDiaDaSemana={toggleDiaDaSemana}/>
+                      <DiasFiltro dias={diasAtivos} toggleDiaDaSemana={toggleDiaDaSemana} listaDeIdsAtivos={diasAtivos}/>
                   </div>
                   <div className="containerTipoPeriodoFiltro">
                     <div className="containerBotoesTipoPeriodoFiltro text-center">

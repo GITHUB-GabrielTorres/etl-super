@@ -49,7 +49,8 @@ def gerar_dataframe_ligacoes(request):
 
     ###### ! Parte responsável pelos PERIODOS
     periodos_validos = ['madrugada', 'manha', 'tarde', 'noite']
-    periodos = request.GET.get('periodos', '')  # ← ADICIONA VALOR PADRÃO
+    periodos = request.GET.get('periodos', '')
+
 
     if periodos:
         periodos = [c.strip() for c in periodos.split(',') if c.strip()]
@@ -334,11 +335,11 @@ class Ligacoes2(APIView):
 
         ### groupp Parte responsável pelo calculo
         ### ? São os seguintes: media_movel || ligacoes_totais || porcentagem_status
-        calculo = request.GET.get('calculo','ligacoes_totais') # Caso nada, ficará como 'ligacoes_totais'
+        calculo = request.GET.get('calculo','soma_total')
 
         ### groupp Parte responsável por pegar PERIODO_MEDIA_MOVEL
         ### ? Integer básico para definir a distância do média móvel
-        media_movel_periodos = int(request.GET.get('periodo_media_movel',1)) # Caso nada, ficará 1
+        media_movel_periodos = int(request.GET.get('periodo_media_movel',1))
 
         ### groupp Parte responsável por pegar PORCENTAGEM_SOBRE_SI
         ### ? Boleano simples. Aplicável apenas se CALCULO == PORCENTAGEM_STATUS. Isso definirá se ele considerará os valores de todos, ou só do seu próprio grupo. Exemplo ilustrativo, supondo que estamos agrupando por chamador, você quer ver a % dele sobre as ligações dele, ou sobre as ligações gerais?
@@ -402,6 +403,11 @@ class Ligacoes2(APIView):
         ### groupp Agrupamentos Organizados
         groupby_usados = []
 
+        # Filtra os status
+        if status and calculo != 'porcentagem_status':
+            print('teste ==========================')
+            dados = dados[dados['status'].isin(status)]
+
         if agrupamento != 'nogroup':
             groupby_usados.append(agrupamento)
 
@@ -415,10 +421,21 @@ class Ligacoes2(APIView):
         ### groupp Manipulação  = --- -- - + - -- --- = --- -- - + - -- --- =
         ### ? Verifica o cálculo e ajusta de acordo.
         # Caso soma_total é simples, basta agrupar e contar as linhas.
-        if calculo == 'soma_total':
+        if calculo == 'soma_total': # groupp funcionando
             # Verifica se há agrupamentos a serem feitos, caso sim usa-os
             if groupby_usados:
                 dados = dados.groupby(groupby_usados).size().reset_index(name='quantidade')
+                if 'ano_cod' in dados.columns:
+                    dados[f'periodo_data'] = dados['ano_cod'].astype(str) + '.' + dados[periodo_desejado].astype(str)
+                    dados = dados[[agrupamento, 'periodo_data', 'quantidade']].rename(columns={
+                        agrupamento: 'nome'
+                    })
+                else:
+                    dados = dados[[agrupamento, periodo_desejado, 'quantidade']].rename(columns={
+                        agrupamento: 'nome',
+                        periodo_desejado: 'periodo_data'
+                    })
+
             # Caso não haja agrupamentos (ambos são nogroup) será criado um DF com o tamanho.
             else:
                 dados = pd.DataFrame([{
@@ -464,6 +481,13 @@ class Ligacoes2(APIView):
                             agrupamento: 'nome',
                             f'codigo_{periodo_desejado}': 'periodo_data',
                         })
+                    else:
+                        dados = dados[[agrupamento, periodo_desejado, 'quantidade']].rename(columns={
+                            # Renomeando as selecionadas
+                            agrupamento: 'nome',
+                            periodo_desejado: 'periodo_data',
+                        })
+
                     
             else:
                 # Média móvel com tudo nogroup não tem como, apenas retornará a quantidade total de ligaçõe.
@@ -588,21 +612,21 @@ class Ligacoes2(APIView):
         #     'semestre':'periodo_data'
         #     })
 
-        # resultado = []
-        # dados = pd.DataFrame(dados)
-        # # # # ! Divide o DataFrame pelos valores únicos na coluna escolhida (ex: 'colaborador')
-        # for nome, grupo in dados.groupby('nome'):
-        #     # Insere em resultado
-        #     resultado.append({
-        #         "id": nome,  # Ex: "Gabriel Torres"
-        #         "data": [
-        #             # Para cada linha do grupo, monta um ponto com a data e quantidade
-        #             {"x": str(row['periodo_data']), "y": row["quantidade"]} for _, row in grupo.iterrows()
-        #         ]
-        #     })
+        resultado = []
+        dados = pd.DataFrame(dados)
+        # # # ! Divide o DataFrame pelos valores únicos na coluna escolhida (ex: 'colaborador')
+        for nome, grupo in dados.groupby('nome'):
+            # Insere em resultado
+            resultado.append({
+                "id": nome,  # Ex: "Gabriel Torres"
+                "data": [
+                    # Para cada linha do grupo, monta um ponto com a data e quantidade
+                    {"x": str(row['periodo_data']), "y": row["quantidade"]} for _, row in grupo.iterrows()
+                ]
+            })
 
-        return Response(dados.to_dict(orient='records'))
-        # return Response(resultado)
+        # return Response(dados.to_dict(orient='records'))
+        return Response(resultado)
 
 
 
