@@ -12,6 +12,7 @@
   import BotaoAtivoDesativo from './components/filters/BotaoAtivoDesativo/BotaoAtivoDesativo'
   import InputDeData from './components/filters/InputDeData/InputDeData'
   import { formatDate } from './utils/formatter'
+  import BoxPlotTest from './components/charts/BoxPlotTest/BoxPlotTest'
 
 
   // Faixa no svg do gráfico
@@ -390,6 +391,10 @@
                   />
                 </div>
               </div>
+            </div>
+            <div className="boxplot size-200">
+              <BoxPlotTest />
+              {/* <p>aaaaaaaaaaaaa</p> */}
             </div>
           </div>
         </div>

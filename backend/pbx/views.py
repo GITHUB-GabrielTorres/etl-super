@@ -305,6 +305,10 @@ class Ligacoes2(APIView):
         # TODO nogroup
         agrupamento = request.GET.get('agrupamento', 'chamador') # Caso nada, ficará 'chamador'
 
+        # groupp Parte responsável pelo MODO
+        # O modo é um formatador final, para o gráfico específico
+        modo = request.GET.get('modo','')
+
         # groupp Parte responsável pelo STATUS
         # ? São os seguintes: atendido, ocupado, falhou, sem resposta
         status = request.GET.get('status','')
@@ -613,20 +617,21 @@ class Ligacoes2(APIView):
         #     })
 
         resultado = []
-        dados = pd.DataFrame(dados)
-        # # # ! Divide o DataFrame pelos valores únicos na coluna escolhida (ex: 'colaborador')
-        for nome, grupo in dados.groupby('nome'):
-            # Insere em resultado
-            resultado.append({
-                "id": nome,  # Ex: "Gabriel Torres"
-                "data": [
-                    # Para cada linha do grupo, monta um ponto com a data e quantidade
-                    {"x": str(row['periodo_data']), "y": row["quantidade"]} for _, row in grupo.iterrows()
-                ]
-            })
+        if modo == 'linechart':
+            dados = pd.DataFrame(dados)
+            # # # ! Divide o DataFrame pelos valores únicos na coluna escolhida (ex: 'colaborador')
+            for nome, grupo in dados.groupby('nome'):
+                # Insere em resultado
+                resultado.append({
+                    "id": nome,  # Ex: "Gabriel Torres"
+                    "data": [
+                        # Para cada linha do grupo, monta um ponto com a data e quantidade
+                        {"x": str(row['periodo_data']), "y": row["quantidade"]} for _, row in grupo.iterrows()
+                    ]
+                })
+            return Response(resultado)
 
-        # return Response(dados.to_dict(orient='records'))
-        return Response(resultado)
+        return Response(dados.to_dict(orient='records'))
 
 
 
