@@ -1,6 +1,6 @@
 import {useState} from 'react'
 
-export default function BotaoFiltroOrdenado({setador, items = {}, titulo}){
+export default function BotaoFiltroOrdenado({setador, items = {}, titulo, ids, idDesabilitado}){
     const [indiceAtual, setIndiceAtual] = useState(1)
 
     const toggle = (index) => {
@@ -17,7 +17,7 @@ export default function BotaoFiltroOrdenado({setador, items = {}, titulo}){
         <div className="containerBotao text-center">
             <>
                 <p className='mb-1 font-semibold'>{titulo}</p>
-                <div className={`botao botao-dia-ativo text-center`} onClick={() => toggle(indiceAtual)}>
+                <div className={`botao ${ids != idDesabilitado ? 'botao-dia-ativo' : 'botao-dia-inativo'} text-center`} onClick={() => toggle(indiceAtual)}>
                 {items[indiceAtual].placeholder}
                 </div>
             </>        

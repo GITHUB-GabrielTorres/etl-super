@@ -13,6 +13,7 @@
   import InputDeData from './components/filters/InputDeData/InputDeData'
   import { formatDate } from './utils/formatter'
   import BoxPlotTest from './components/charts/BoxPlotTest/BoxPlotTest'
+  import BotaoComSetas from './components/filters/BotaoComSetas/BotaoComSetas'
 
 
   // Faixa no svg do gráfico
@@ -40,10 +41,10 @@
     const [diasAtivos, setDiasAtivos] = useState([0,1,2,3,4,5,6])
 
     const [colaboradores, setColaboradores] = useState([])
-    const [modoY, setModoY] = useState('ligacoes_totais') // ligacoes_totais || media_movel
+    const [calculo, setCalculo] = useState('ligacoes_totais') // ligacoes_totais || media_movel || porcentagem_status
     const [periodoMediaMovel, setPeriodoMediaMovel] = useState(1)
     const [tipoPeriodo, setTipoPeriodo] = useState('dia') // dia || mes
-    const [agrupadoPorChamador, setAgrupadoPorChamador] = useState(false)
+    const [agrupamento, setAgrupamento] = useState('')
     const [dataInicio, setDataInicio] = useState('')
     const [dataFim, setDataFim] = useState('')
     // Dropdown list
@@ -54,6 +55,14 @@
     
     // Criação da referência necessária para o handleClickOutside
     const dropdownRef = useRef(null);
+    
+    // Periodos
+    const [periodosEscolhidos, setPeriodosEscolhidos] = useState(['MADRUGADA','MANHA','TARDE','NOITE'])
+    // Status
+    const [status, setStatus] = useState(['ATENDIDO','OCUPADO','FALHA','SEM RESPOSTA'])
+
+    // Usado para definir qual o Periodo Data está ativo
+    const [indiceAtualPeriodoData, setIndiceAtualPeriodoData] = useState(1)
 
     // Use effect para o 'clique fora' do dropdown list. Precisa de um só pra ele por conta do return.
     useEffect(() => {
@@ -88,10 +97,10 @@
           const response = await GetLigacoes({
             ...(diasAtivos && {dias: diasAtivos}),
             ...(chamadorSelecionado && {chamadores: chamadorSelecionado}),
-            ...(modoY && {modo_y: modoY}),
+            ...(calculo && {modo_y: calculo}),
             ...(periodoMediaMovel && {periodo_media_movel: periodoMediaMovel}),
             ...(tipoPeriodo && {tipo_periodo: tipoPeriodo}),
-            ...(agrupadoPorChamador && {agrupamento_por_chamador: agrupadoPorChamador}),
+            ...(agrupamento && {agrupamento_por_chamador: agrupamento}),
             ...(dataInicio && {inicio: dataInicio}),
             ...(dataFim && {fim: dataFim}),
           })
@@ -146,7 +155,7 @@
         }
       }
       PegaLigacoes()
-    }, [diasAtivos, chamadorSelecionado, modoY, periodoMediaMovel, tipoPeriodo, agrupadoPorChamador, dataInicio, dataFim])
+    }, [diasAtivos, chamadorSelecionado, calculo, periodoMediaMovel, tipoPeriodo, agrupamento, dataInicio, dataFim])
 
 
     // groupp TOGGLES
@@ -158,16 +167,32 @@
       }
     }
 
+    const togglePeriodo = (item) =>{
+      if (periodosEscolhidos.includes(item)){
+        setPeriodosEscolhidos(periodosEscolhidos.filter(d => d !== item));
+      } else {
+        setPeriodosEscolhidos([...periodosEscolhidos, item])
+      }
+    }
+
+    const toggleStatus = (item) =>{
+      if (status.includes(item)){
+        setStatus(status.filter(d => d !== item));
+      } else {
+        setStatus([...status, item])
+      }
+    }
+
     const toggleTipoPeriodo = () =>{
       tipoPeriodo == 'dia' ? setTipoPeriodo('mes') : setTipoPeriodo('dia')
     }
 
     const toggleAgrupamentoPorChamador = () => {
-      agrupadoPorChamador ? setAgrupadoPorChamador(false) : setAgrupadoPorChamador(true)
+      agrupamento ? setAgrupamento(false) : setAgrupamento(true)
     }
 
     const toggleModoY = () => {
-      modoY == 'ligacoes_totais' ? setModoY('media_movel') : setModoY('ligacoes_totais')
+      calculo == 'ligacoes_totais' ? setCalculo('media_movel') : setCalculo('ligacoes_totais')
     }
 
     // Criação do Tooltip personalizado
@@ -194,13 +219,39 @@
         2: {placeholder: 'MÊS', valor: 'mes'},
     }
   const itemsBotaoAgrupamento = {
-        1: {placeholder: 'TOTAL', valor: false},
-        2: {placeholder: 'CHAMADOR', valor: true},
+        1: {placeholder: 'PERIODO', valor: 'periodo'},
+        2: {placeholder: 'STATUS', valor: 'status'},
+        3: {placeholder: 'CHAMADOR', valor: 'chamador'},
+        4: {placeholder: 'HORA', valor: 'hora'},
+        5: {placeholder: 'NENHUM', valor: 'nogroup'},
     }
-  const itemsBotaoModoY = {
-        1: {placeholder: 'TOTAL', valor: 'ligacoes_totais'},
+  const itemsCalculo = {
+        1: {placeholder: 'SOMA TOTAL', valor: 'soma_total'},
         2: {placeholder: 'MÉDIA MÓVEL', valor: 'media_movel'},
+        3: {placeholder: '% DE STATUS', valor: 'porcentagem_status'},
     }
+  const itemsPeriodos = {
+    1: {placeholder: 'MADRUGADA', valor: 'MADRUGADA'},
+    2: {placeholder: 'MANHA', valor: 'MANHA'},
+    3: {placeholder: 'TARDE', valor: 'TARDE'},
+    4: {placeholder: 'NOITE', valor: 'NOITE'},
+  }
+  const statusExistentes = {
+    1: {placeholder: 'ATENDIDO', valor: 'ATENDIDO'},
+    2: {placeholder: 'OCUPADO', valor: 'OCUPADO'},
+    3: {placeholder: 'FALHA', valor: 'FALHA'},
+    4: {placeholder: 'SEM RESPOSTA', valor: 'SEM RESPOSTA'},
+  }
+
+  const itemsPeriodoData = {
+    1: {placeholder: 'DIA', valor: 'dia'},
+    2: {placeholder: 'SEMANA', valor: 'semana'},
+    3: {placeholder: 'MES', valor: 'mes'},
+    4: {placeholder: 'TRIMESTRE', valor: 'trimestre'},
+    5: {placeholder: 'SEMESTRE', valor: 'semestre'},
+    6: {placeholder: 'ANO', valor: 'ano'},
+}
+
 
     
     return (
@@ -237,6 +288,22 @@
                 </li>
               </ul>
             </nav>
+            <div className="teste">
+              <h2 className='text-2xl font-bold'>Gerais</h2>
+                <p>inicio</p>
+                <p>fim</p>
+                <p>dias</p>
+                <p>periodos</p>
+                <p>chamadores</p>
+                <p>status</p>
+              <h2 className='text-2xl font-bold'>Linechart</h2>
+                <p>tipo_periodos</p>
+                <p>agrupamento</p>
+                <p>calculo</p>
+                <p>periodo_media_movel</p>
+                <p>todos_status</p>
+                <p>porcentagem_sobre_si</p>
+            </div>
           </div>
           <div className="sideBarDownMenu bg-purple-200">
           </div>
@@ -247,81 +314,120 @@
               <h2 className='text-4xl font-bold'>PBX Interno da Syngoo</h2>
               <p>Sistema de ligações através de ramais e configurações avançadas.</p>
             </div>
-            <div className="lineChartCallsContainer">
-              <h3 className='text-3xl font-bold'>Ligações em Tempo Real</h3>
-              {/* from-[#e8e8ee] to-[#f2f2f8]  */}
-              <div className="relative w-full rounded-xl bg-gradient-to-r from-[#e8e8ee] to-[#f2f2f8] px-2 py-4 shadow-[4px_4px_15px_#c9c9c922] mt-2">
-                <div className="containerMasterFiltros flex gap-5">
-                  <div className='containerDiasFiltro'>
-                      <DiasFiltro dias={diasAtivos} toggleDiaDaSemana={toggleDiaDaSemana} listaDeIdsAtivos={diasAtivos}/>
-                  </div>
-                  <div className="containerTipoPeriodoFiltro">
-                    <div className="containerBotoesTipoPeriodoFiltro text-center">
-                      <BotaoFiltroOrdenado setador={setTipoPeriodo} items={itemsBotaoTipoPeriodo} titulo='Tipo Período'/>
+
+            {/* Page Filters */}
+            <h2 className='text-3xl font-bold'>Filtros de Página</h2>
+            <div className="pageFiltersContainer relative w-full rounded-[4px] bg-gradient-to-tr from-[#c0c0c044] from-1% to-[#ebebeb87] to-80% px-4 pt-2 pb-4 shadow-[4px_4px_15px_#c9c9c922] mt-2">
+                <div className="content flex mt-2 gap-x-10 gap-y-4 mb-4 flex-wrap">
+                  <div className="datas flex gap-2">
+                    <div className="containerDataInicio">
+                      <div className="containerBotoesDataInicio text-center">
+                        <InputDeData setador={setDataInicio} titulo='Inicio' max={dataFim}/>
+                      </div>
                     </div>
+    
+                    <div className="containerDataInicio">
+                      <div className="containerBotoesDataInicio text-center">
+                        <InputDeData setador={setDataFim} titulo='Fim' min={dataInicio}/>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="containerPeriodos">
+                    <p className='mb-1 font-semibold'>Períodos do Dia</p>
+                    <div className="containerBotaoPeriodos flex gap-2">
+                      {Object.values(itemsPeriodos).map(item => (
+                        <BotaoAtivoDesativo valor={item.placeholder} id={item.valor} toggle={togglePeriodo} listaDeIdsAtivos={periodosEscolhidos}/>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="containerStatus">
+                    <p className='mb-1 font-semibold'>Status de Chamada</p>
+                    <div className="containerBotaoPeriodos flex gap-2">
+                      {Object.values(statusExistentes).map(item => (
+                        <BotaoAtivoDesativo valor={item.placeholder} id={item.valor} toggle={toggleStatus} listaDeIdsAtivos={status}/>
+                      ))}
+                    </div>
+                  </div>
+  
+                <div className='containerDiasFiltro'>
+                    <DiasFiltro dias={diasAtivos} toggleDiaDaSemana={toggleDiaDaSemana} listaDeIdsAtivos={diasAtivos}/>
+                </div>
+
+
+                {/* Chamadores */}
+                <div className="containerChamadores flex-col grow">
+                  <p className='font-semibold mb-1'>Chamadores</p>
+                  <div className="botoes flex grow gap-3">
+                    <div ref={dropdownRef} className="relative w-full">
+                      {/* Botão dos chamadores */}
+                      <button
+                        type="button"
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="w-full font-medium rounded text-left bg-gray-100 shadow-sm px-4 py-2 cursor-pointer focus:ring-2 focus:outline-1 focus:ring-[#000e2533]0"
+                      >
+                        {chamadorSelecionado.length > 0
+                          ? `Chamadores: ${chamadorSelecionado.join(", ")}`
+                          : "Selecione colaboradores"}
+                      </button>
+                      {isOpen && (
+                        <div className="absolute z-10 mt-2 w-full bg-[#fff9] backdrop-blur-[7px] rounded shadow-md max-h-[300px] overflow-y-auto">
+                          {colaboradores.map((colaborador) => (
+                            <label
+                              key={colaborador.id}
+                              className="flex items-center px-4 py-2 hover:bg-gradient-to-r text-[#222] from-[#fff0] to-[#000e2533] hover:text-black cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={chamadorSelecionado.includes(`${colaborador.primeiro_nome} ${colaborador.sobrenome}`)}
+                                onChange={() => toggleOption(`${colaborador.primeiro_nome} ${colaborador.sobrenome}`)}
+                                className="mr-2"
+                              />
+                              {`${colaborador.primeiro_nome} ${colaborador.sobrenome}`}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className='bg-gradient-to-br from-gray-500 to-gray-700 cursor-pointer text-white font-bold flex items-center px-2 rounded shadow-sm hover:bg-gradient-to-br hover:from-green-600 hover:to-green-800 hover:text-gray-200 hover:shadow-[0px_0px_18px_10px_#e7000b12] duration-600' onClick={() => setTodosAtivos(!todosAtivos)}>
+                      ATIVOS
+                    </div>
+                  <div className='bg-gradient-to-br from-gray-500 to-gray-700 cursor-pointer text-white font-bold flex items-center px-2 rounded shadow-sm hover:bg-gradient-to-br hover:from-red-600 hover:to-red-800 hover:text-gray-200 hover:shadow-[0px_0px_18px_10px_#e7000b12] duration-600' onClick={() => setChamadorSelecionado([])}>
+                    RESET
+                  </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* groupp LineChart */}
+            <div className="lineChartCallsContainer mt-5">
+              <h3 className='text-2xl font-bold'>Ligações em Tempo Real</h3>
+              {/* from-[#e8e8ee] to-[#f2f2f8]  */}
+              <div className="relative w-full rounded-[4px] bg-gradient-to-tr from-[#c0c0c044] from-1% to-[#ebebeb87] to-80% px-2 py-4 shadow-[4px_4px_15px_#c9c9c922] mt-2">
+                <div className="containerMasterFiltros flex gap-5">
+                  <div className="botaoComSetas">
+                    <BotaoComSetas items={itemsPeriodoData} indice={indiceAtualPeriodoData} setadorIndice={setIndiceAtualPeriodoData} setadorId={setTipoPeriodo} idDesativado='nogroup'/>
                   </div>
                   <div className="containerAgrupamentoPorChamadorFiltro w-30">
                     <div className="containerBotoesAgrupamentoPorChamadorFiltro text-center">
-                      <BotaoFiltroOrdenado setador={setAgrupadoPorChamador} items={itemsBotaoAgrupamento} titulo='Agrupamento'/>
+                      <BotaoFiltroOrdenado setador={setAgrupamento} items={itemsBotaoAgrupamento} titulo='Agrupamento' ids={agrupamento} idDesabilitado='nogroup'/>
                     </div>
                   </div>
                   <div className="containerModoY w-35">
                     <div className="containerBotoesModoY text-center">
-                      <BotaoFiltroOrdenado setador={setModoY} items={itemsBotaoModoY} titulo='Tipo de Info'/>
+                      <BotaoFiltroOrdenado setador={setCalculo} items={itemsCalculo} titulo='Cálculo' idDesabilitado='nogroup'/>
                     </div>
                   </div>
                   <div className="containerPeriodosMediaMovel">
                     <div className="containerBotoesPeriodosMediaMovel text-center">
-                      <p className={`mb-1 font-semibold ${modoY !== 'media_movel' ? 'text-gray-400' : ''}`}>Períodos</p>
-                        <input disabled={modoY !== 'media_movel'} className={`${modoY !== 'media_movel' ? 'input-number-inativo' : 'input-number-ativo'}`} type="number" name="periodos_media_movel" id="periodos_media_movel" onChange={(e) => setPeriodoMediaMovel(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="containerDataInicio">
-                    <div className="containerBotoesDataInicio text-center">
-                      <InputDeData setador={setDataInicio} titulo='Inicio' max={dataFim}/>
-                    </div>
-                  </div>
-                  <div className="containerDataInicio">
-                    <div className="containerBotoesDataInicio text-center">
-                      <InputDeData setador={setDataFim} titulo='Teste Fim' min={dataInicio}/>
+                      <p className={`mb-1 font-semibold ${calculo !== 'media_movel' ? 'text-gray-400' : ''}`}>Períodos</p>
+                        <input disabled={calculo !== 'media_movel'} className={`${calculo !== 'media_movel' ? 'input-number-inativo' : 'input-number-ativo'}`} type="number" name="periodos_media_movel" id="periodos_media_movel" onChange={(e) => setPeriodoMediaMovel(e.target.value)} />
                     </div>
                   </div>
                 </div>
                 
-                {/* asdasd */}
-                <div className="asd flex pt-3 gap-3">
-                  <div ref={dropdownRef} className="relative inline-block w-[87%]">
-                    <button
-                      type="button"
-                      onClick={() => setIsOpen(!isOpen)}
-                      className="w-full font-medium rounded text-left bg-gray-100 shadow-sm px-4 py-2 cursor-pointer focus:ring-2 focus:outline-1 focus:ring-[#000e2533]0"
-                    >
-                      {chamadorSelecionado.length > 0
-                        ? `Chamadores: ${chamadorSelecionado.join(", ")}`
-                        : "Selecione colaboradores"}
-                    </button>
-                    {isOpen && (
-                      <div className="absolute z-10 mt-2 w-full bg-[#fff9] backdrop-blur-[7px] rounded shadow-md max-h-[300px] overflow-y-auto">
-                        {colaboradores.map((colaborador) => (
-                          <label
-                            key={colaborador.id}
-                            className="flex items-center px-4 py-2 hover:bg-gradient-to-r text-[#222] from-[#fff0] to-[#000e2533] hover:text-black cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={chamadorSelecionado.includes(`${colaborador.primeiro_nome} ${colaborador.sobrenome}`)}
-                              onChange={() => toggleOption(`${colaborador.primeiro_nome} ${colaborador.sobrenome}`)}
-                              className="mr-2"
-                            />
-                            {`${colaborador.primeiro_nome} ${colaborador.sobrenome}`}
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className='bg-gradient-to-br from-gray-500 to-gray-700 cursor-pointer text-white font-bold flex items-center px-2 rounded shadow-sm hover:bg-gradient-to-br hover:from-green-600 hover:to-green-800 hover:text-gray-200 hover:shadow-[0px_0px_18px_10px_#e7000b12] duration-600' onClick={() => setTodosAtivos(!todosAtivos)}>ATIVOS</div>
-                  <div className='bg-gradient-to-br from-gray-500 to-gray-700 cursor-pointer text-white font-bold flex items-center px-2 rounded shadow-sm hover:bg-gradient-to-br hover:from-red-600 hover:to-red-800 hover:text-gray-200 hover:shadow-[0px_0px_18px_10px_#e7000b12] duration-600' onClick={() => setChamadorSelecionado([])}>RESET</div>
-                </div>
 
                 <div className='h-[400px]'>
                   <ResponsiveLine 
