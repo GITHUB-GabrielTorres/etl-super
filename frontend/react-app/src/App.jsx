@@ -14,7 +14,7 @@
   import { formatDate } from './utils/formatter'
   import BoxPlotTest from './components/charts/BoxPlotTest/BoxPlotTest'
   import BotaoComSetas from './components/filters/BotaoComSetas/BotaoComSetas'
-
+  import BotaoOnOff from './components/filters/BotaoOnOff/BotaoOnOff'
 
   // Faixa no svg do gráfico
   const FaixaHorizontal = ({ yScale, innerWidth }) => {
@@ -35,36 +35,38 @@
   }
   
   function App() {
-    // Data linechart 
+    // groupp Dados linechart 
     const [ligacoes, setLigacoes] = useState([])
-    // Linechart variables
-    const [diasAtivos, setDiasAtivos] = useState([0,1,2,3,4,5,6])
 
-    const [colaboradores, setColaboradores] = useState([])
-    const [calculo, setCalculo] = useState('ligacoes_totais') // ligacoes_totais || media_movel || porcentagem_status
-    const [periodoMediaMovel, setPeriodoMediaMovel] = useState(1)
-    const [tipoPeriodo, setTipoPeriodo] = useState('dia') // dia || mes
-    const [agrupamento, setAgrupamento] = useState('')
+    // groupp Querystrings para ligações
     const [dataInicio, setDataInicio] = useState('')
     const [dataFim, setDataFim] = useState('')
-    // Dropdown list
-    const [isOpen, setIsOpen] = useState(false);
-    const [chamadorSelecionado, setChamadorSelecionado] = useState([]);
-    // Todos colabs ou só ativos
-    const [todosAtivos, setTodosAtivos] = useState(true)
-    
-    // Criação da referência necessária para o handleClickOutside
-    const dropdownRef = useRef(null);
-    
-    // Periodos
+    const [diasAtivos, setDiasAtivos] = useState([0,1,2,3,4,5,6])
     const [periodosEscolhidos, setPeriodosEscolhidos] = useState(['MADRUGADA','MANHA','TARDE','NOITE'])
-    // Status
+    const [chamadorSelecionado, setChamadorSelecionado] = useState([]);
+    const [tipoPeriodo, setTipoPeriodo] = useState('dia')
+    const [agrupamento, setAgrupamento] = useState('')
+    const [calculo, setCalculo] = useState('ligacoes_totais')
+    const [periodoMediaMovel, setPeriodoMediaMovel] = useState(1)
     const [status, setStatus] = useState(['ATENDIDO','OCUPADO','FALHA','SEM RESPOSTA'])
-
+    const [todosStatus, setTodosStatus] = useState(true)
+    const [porcentagemSobreSi, setPorcentagemSobreSi] = useState(true)
+    
+    // groupp Outros
+    // Dropdown list
+    const [isOpen, setIsOpen] = useState(false)
+    // Os colaboradores ficam aqui, vindos do GET Colaboradores
+    const [colaboradores, setColaboradores] = useState([])
+    // Botão de ativos para definir se no dropdown list aparecem todos colabs ou só ativos
+    const [todosAtivos, setTodosAtivos] = useState(true)
+    // Criação da referência necessária para o handleClickOutside - Para dropdown list
+    const dropdownRef = useRef(null);
     // Usado para definir qual o Periodo Data está ativo
     const [indiceAtualPeriodoData, setIndiceAtualPeriodoData] = useState(1)
 
-    // Use effect para o 'clique fora' do dropdown list. Precisa de um só pra ele por conta do return.
+
+
+    // groupp Use effect para o 'clique fora' do dropdown list. Precisa de um useEffect exclusivo pra ele, por conta do return.
     useEffect(() => {
         // ? Essa função faz com que, quando clicamos fora do container de seleção do dropdown list, o dropdown list se feche
         function handleClickOutside(event) {
@@ -77,7 +79,8 @@
         document.removeEventListener("mousedown", handleClickOutside);
       }
     })
-    // useEffect para abertura da página
+
+    // groupp useEffect para pegar os colaboradores
     useEffect(() => {
       // ? Função para pegar os colaboradores
       async function GetColaboradoresApp(){
@@ -90,6 +93,8 @@
       }
       GetColaboradoresApp()
     }, [todosAtivos])
+
+    // groupp useEffect para pegar as ligações
     useEffect(() => {
       // ? Função para pegar dados de ligação
       async function PegaLigacoes(){
@@ -138,14 +143,12 @@
                 originalDate: dataISO // guardamos a data real
               }))
               .sort((b, a) => new Date(a.originalDate) - new Date(b.originalDate)) // ordenamos pela data real
-
             // Removemos o campo auxiliar antes de passar pro gráfico
             return {
               id: colaborador,
               data: data.map(({ x, y }) => ({ x, y }))
             }
           })
-
             setLigacoes(resposta_final)
           }
 
@@ -183,19 +186,7 @@
       }
     }
 
-    const toggleTipoPeriodo = () =>{
-      tipoPeriodo == 'dia' ? setTipoPeriodo('mes') : setTipoPeriodo('dia')
-    }
-
-    const toggleAgrupamentoPorChamador = () => {
-      agrupamento ? setAgrupamento(false) : setAgrupamento(true)
-    }
-
-    const toggleModoY = () => {
-      calculo == 'ligacoes_totais' ? setCalculo('media_movel') : setCalculo('ligacoes_totais')
-    }
-
-    // Criação do Tooltip personalizado
+    // groupp Criação do Tooltip do Linechart
     const Tooltip1 = ({point}) => (
       <div className='bg-[#00000081] backdrop-blur-[5px] p-2 border-1 border-white shadow-xl rounded-xl text-white mb-5 whitespace-nowrap'>
         <h3 className='font-bold text-xl'>{point.seriesId}</h3>
@@ -204,8 +195,7 @@
       </div>
     )
 
-
-  // Aqui é sobre o dropdown list
+  // groupp Toggle do dropdown list
   const toggleOption = (option) => {
     setChamadorSelecionado((prev) =>
       prev.includes(option)
@@ -214,33 +204,33 @@
     )
   }
 
-  const itemsBotaoTipoPeriodo = {
-        1: {placeholder: 'DIA', valor: 'dia'},
-        2: {placeholder: 'MÊS', valor: 'mes'},
-    }
+  // groupp Definições de informações
   const itemsBotaoAgrupamento = {
-        1: {placeholder: 'PERIODO', valor: 'periodo'},
-        2: {placeholder: 'STATUS', valor: 'status'},
-        3: {placeholder: 'CHAMADOR', valor: 'chamador'},
-        4: {placeholder: 'HORA', valor: 'hora'},
-        5: {placeholder: 'NENHUM', valor: 'nogroup'},
-    }
-  const itemsCalculo = {
-        1: {placeholder: 'SOMA TOTAL', valor: 'soma_total'},
-        2: {placeholder: 'MÉDIA MÓVEL', valor: 'media_movel'},
-        3: {placeholder: '% DE STATUS', valor: 'porcentagem_status'},
-    }
-  const itemsPeriodos = {
-    1: {placeholder: 'MADRUGADA', valor: 'MADRUGADA'},
-    2: {placeholder: 'MANHA', valor: 'MANHA'},
-    3: {placeholder: 'TARDE', valor: 'TARDE'},
-    4: {placeholder: 'NOITE', valor: 'NOITE'},
+    1: {placeholder: 'PERIODO', valor: 'periodo'},
+    2: {placeholder: 'STATUS', valor: 'status'},
+    3: {placeholder: 'CHAMADOR', valor: 'chamador'},
+    4: {placeholder: 'HORA', valor: 'hora'},
+    5: {placeholder: 'NENHUM', valor: 'nogroup'},
   }
-  const statusExistentes = {
-    1: {placeholder: 'ATENDIDO', valor: 'ATENDIDO'},
-    2: {placeholder: 'OCUPADO', valor: 'OCUPADO'},
-    3: {placeholder: 'FALHA', valor: 'FALHA'},
-    4: {placeholder: 'SEM RESPOSTA', valor: 'SEM RESPOSTA'},
+
+  const itemsCalculo = {
+    1: {placeholder: 'SOMA TOTAL', valor: 'soma_total'},
+    2: {placeholder: 'MÉDIA MÓVEL', valor: 'media_movel'},
+    3: {placeholder: '% DE STATUS', valor: 'porcentagem_status'},
+  }
+
+  const itemsPeriodos = {
+    1: {placeholder: 'MADRUGADA', valor: 'madrugada'},
+    2: {placeholder: 'MANHA', valor: 'manha'},
+    3: {placeholder: 'TARDE', valor: 'tarde'},
+    4: {placeholder: 'NOITE', valor: 'noite'},
+  }
+
+  const itemsStatusExistentes = {
+    1: {placeholder: 'ATENDIDO', valor: 'atendido'},
+    2: {placeholder: 'OCUPADO', valor: 'ocupado'},
+    3: {placeholder: 'FALHA', valor: 'falha'},
+    4: {placeholder: 'SEM RESPOSTA', valor: 'sem resposta'},
   }
 
   const itemsPeriodoData = {
@@ -255,7 +245,8 @@
 
     
     return (
-      <div className='min-h-screen h-full w-full bg-[#f1f1f7] flex'>
+      <div className='fundoMaximo min-h-screen h-full w-full bg-[#f1f1f7] flex'>
+        {/* // GROUPP SIDE BAR ------------------------------------------------------------- */}
         <div className="sideBar w-[clamp(200px,19vw,400px)] border-r-1 border-[#C9C9C9]  grid grid-cols-1 grid-rows-[auto_auto_1fr_auto]">
           <div className="logo px-10 py-8">
             <img src="https://syngoo.com.br/wp-content/uploads/2022/09/syngoo4.png" alt="" />
@@ -271,6 +262,7 @@
               </div>
             </div>
           </div>
+        {/* // GROUPP ITEMS MENU ------------------------------------------------------------- */}
           <div className="menuItems">
             <nav className="mt-6">
               <ul className="space-y-2 px-8">
@@ -308,7 +300,8 @@
           <div className="sideBarDownMenu bg-purple-200">
           </div>
         </div>
-        <div className="mainContent w-[clamp(200px,81vw,100vw)] p-8 bg-linear-45 from-[#f1f1f7] to-[#f8f8ff]">
+        {/* // GROUPP RIGHT CONTENT (MAIN CONTENT) ------------------------------------------------------------- */}
+        <div className="rightContent w-[clamp(200px,81vw,100vw)] p-8 bg-linear-45 from-[#f1f1f7] to-[#f8f8ff]">
           <div className="mainContentContainer h-full w-full">
             <div className="title mb-8">
               <h2 className='text-4xl font-bold'>PBX Interno da Syngoo</h2>
@@ -337,7 +330,7 @@
                     <p className='mb-1 font-semibold'>Períodos do Dia</p>
                     <div className="containerBotaoPeriodos flex gap-2">
                       {Object.values(itemsPeriodos).map(item => (
-                        <BotaoAtivoDesativo valor={item.placeholder} id={item.valor} toggle={togglePeriodo} listaDeIdsAtivos={periodosEscolhidos}/>
+                        <BotaoAtivoDesativo  id={item.valor} valor={item.placeholder} toggle={togglePeriodo} listaDeIdsAtivos={periodosEscolhidos}/>
                       ))}
                     </div>
                   </div>
@@ -345,7 +338,7 @@
                   <div className="containerStatus">
                     <p className='mb-1 font-semibold'>Status de Chamada</p>
                     <div className="containerBotaoPeriodos flex gap-2">
-                      {Object.values(statusExistentes).map(item => (
+                      {Object.values(itemsStatusExistentes).map(item => (
                         <BotaoAtivoDesativo valor={item.placeholder} id={item.valor} toggle={toggleStatus} listaDeIdsAtivos={status}/>
                       ))}
                     </div>
@@ -354,8 +347,6 @@
                 <div className='containerDiasFiltro'>
                     <DiasFiltro dias={diasAtivos} toggleDiaDaSemana={toggleDiaDaSemana} listaDeIdsAtivos={diasAtivos}/>
                 </div>
-
-
                 {/* Chamadores */}
                 <div className="containerChamadores flex-col grow">
                   <p className='font-semibold mb-1'>Chamadores</p>
@@ -423,9 +414,15 @@
                   <div className="containerPeriodosMediaMovel">
                     <div className="containerBotoesPeriodosMediaMovel text-center">
                       <p className={`mb-1 font-semibold ${calculo !== 'media_movel' ? 'text-gray-400' : ''}`}>Períodos</p>
-                        <input disabled={calculo !== 'media_movel'} className={`${calculo !== 'media_movel' ? 'input-number-inativo' : 'input-number-ativo'}`} type="number" name="periodos_media_movel" id="periodos_media_movel" onChange={(e) => setPeriodoMediaMovel(e.target.value)} />
+                        <input disabled={calculo !== 'media_movel'} className={`${calculo !== 'media_movel' ? 'input-number-inativo' : 'input-number-ativo'} h-9`} type="number" name="periodos_media_movel" id="periodos_media_movel" onChange={(e) => setPeriodoMediaMovel(e.target.value)} />
                     </div>
                   </div>
+                  <div className="containerTodosStatus">
+                    <div className="containerBotaoTodosStatus">
+                      <BotaoOnOff valor='TODOS'/>
+                    </div>
+                  </div>
+
                 </div>
                 
 
