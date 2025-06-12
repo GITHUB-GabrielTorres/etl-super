@@ -290,7 +290,7 @@ def realizar_calculos(params, df_tratado, request):
     # ? São os seguintes: atendido, ocupado, falhou, sem resposta
     status = params['status']
     # EX. DE INPUT: [atendido, ocupado, falhou]
-    status = [status_corretos[s] for s in status]
+    status = [status_corretos[s] for s in status if s in status_corretos]
     # EX. DE OUTPUT: [ANSWERED, BUSY, FAILED]
 
     # Caso status esteja vazio, ele pegará todos os status
@@ -569,19 +569,25 @@ def organizar_para_plotagem(params, df_final, modo):
     resultado = []
     if modo == 'linechart':
         df_final = pd.DataFrame(df_final)
-        # # # ! Divide o DataFrame pelos valores únicos na coluna escolhida (ex: 'colaborador')
+        # Pad missing periods for all groups
+        if not df_final.empty and 'nome' in df_final.columns and 'periodo_data' in df_final.columns:
+            df_final = pad_groups_with_periods(df_final, group_col='nome', period_col='periodo_data', value_col='quantidade')
+        # Replace NaN and inf with None for JSON compliance
+        df_final = df_final.replace([np.nan, np.inf, -np.inf], None)
         for nome, grupo in df_final.groupby('nome'):
-            # Insere em resultado
             resultado.append({
-                "id": nome,  # Ex: "Gabriel Torres"
+                "id": nome,
                 "data": [
                     # Para cada linha do grupo, monta um ponto com a data e quantidade
                     {"x": str(row['periodo_data']), "y": row["quantidade"]} for _, row in grupo.iterrows()
                 ]
             })
         return resultado
+    df_final = pd.DataFrame(df_final)
+    if not df_final.empty and 'nome' in df_final.columns and 'periodo_data' in df_final.columns:
+        df_final = pad_groups_with_periods(df_final, group_col='nome', period_col='periodo_data', value_col='quantidade')
+    df_final = df_final.replace([np.nan, np.inf, -np.inf], None)
     return df_final.to_dict(orient='records')
-
 
 class Ligacoes2(APIView):
     def get(self, request):
@@ -769,3 +775,23 @@ class Ligacoes(APIView):
             df = df.drop(columns=['chamador'])
 
         return Response(df.to_dict(orient='records'))
+
+def pad_groups_with_periods(df, group_col='nome', period_col='periodo_data', value_col='quantidade'):
+    """
+    Ensures all groups have all possible periods (from all groups), filling missing values with None.
+    """
+    if df.empty:
+        return df
+    # Get all unique group and period values from the WHOLE DataFrame
+    all_groups = df[group_col].drop_duplicates().tolist()
+    all_periods = sorted(df[period_col].drop_duplicates().tolist())
+    # Create a MultiIndex of all combinations
+    idx = pd.MultiIndex.from_product([all_groups, all_periods], names=[group_col, period_col])
+    df = df.set_index([group_col, period_col])
+    df = df.reindex(idx).reset_index()
+    # Fill missing value_col with None
+    if value_col in df.columns:
+        df[value_col] = df[value_col].where(pd.notnull(df[value_col]), None)
+    # Fill any other NaN with None
+    df = df.where(pd.notnull(df), None)
+    return df

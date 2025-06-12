@@ -42,15 +42,16 @@
     const [dataInicio, setDataInicio] = useState('')
     const [dataFim, setDataFim] = useState('')
     const [diasAtivos, setDiasAtivos] = useState([0,1,2,3,4,5,6])
-    const [periodosEscolhidos, setPeriodosEscolhidos] = useState(['MADRUGADA','MANHA','TARDE','NOITE'])
+    const [periodosEscolhidos, setPeriodosEscolhidos] = useState(['madrugada','manha','tarde','noite'])
     const [chamadorSelecionado, setChamadorSelecionado] = useState([]);
     const [tipoPeriodo, setTipoPeriodo] = useState('dia')
     const [agrupamento, setAgrupamento] = useState('')
-    const [calculo, setCalculo] = useState('ligacoes_totais')
+    const [calculo, setCalculo] = useState('soma_total')
     const [periodoMediaMovel, setPeriodoMediaMovel] = useState(1)
-    const [status, setStatus] = useState(['ATENDIDO','OCUPADO','FALHA','SEM RESPOSTA'])
+    const [status, setStatus] = useState(['atendido','ocupado','falha','sem resposta'])
     const [todosStatus, setTodosStatus] = useState(true)
     const [porcentagemSobreSi, setPorcentagemSobreSi] = useState(true)
+    const [querystringsLinechart, setQuerystringsLinechart] = useState('')
     
     // groupp Outros
     // Dropdown list
@@ -94,71 +95,51 @@
       GetColaboradoresApp()
     }, [todosAtivos])
 
+    const querystringsForLinechart = [dataInicio, dataFim, diasAtivos, periodosEscolhidos, chamadorSelecionado, tipoPeriodo, agrupamento, calculo, periodoMediaMovel, status, todosStatus, porcentagemSobreSi]
+
+
     // groupp useEffect para pegar as ligações
     useEffect(() => {
       // ? Função para pegar dados de ligação
       async function PegaLigacoes(){
+        setQuerystringsLinechart({
+          ...(dataInicio && {inicio: dataInicio}),
+          ...(dataFim && {fim: dataFim}),
+          ...(diasAtivos && {dias: diasAtivos}),
+          ...(periodosEscolhidos && {periodos: periodosEscolhidos}),
+          ...(chamadorSelecionado && {chamadores: chamadorSelecionado}),
+          ...(tipoPeriodo && {tipo_periodo: tipoPeriodo}),
+          ...(agrupamento && {agrupamento: agrupamento}),
+          ...(calculo && {calculo: calculo}),
+          ...(status && {status: status}),
+          ...(periodoMediaMovel && {periodo_media_movel: periodoMediaMovel}),
+          ...(todosStatus && {todos_status: todosStatus}),
+          ...(porcentagemSobreSi && {porcentagem_sobre_si: porcentagemSobreSi}),
+          modo: 'linechart',
+        })
         try{
           const response = await GetLigacoes({
-            ...(diasAtivos && {dias: diasAtivos}),
-            ...(chamadorSelecionado && {chamadores: chamadorSelecionado}),
-            ...(calculo && {modo_y: calculo}),
-            ...(periodoMediaMovel && {periodo_media_movel: periodoMediaMovel}),
-            ...(tipoPeriodo && {tipo_periodo: tipoPeriodo}),
-            ...(agrupamento && {agrupamento_por_chamador: agrupamento}),
-            ...(dataInicio && {inicio: dataInicio}),
-            ...(dataFim && {fim: dataFim}),
-          })
-          const comUID = response.map(item => ({ // Responsável por inserir o uid
-            ...item, _uid: uuidv4()
-          }))
-          // Caso não tenha colaborador. Significa que o agrupamento é por data. Portanto apenas x e y simples.
-          let dados_tratados = []
-          if (response.length && !response[0].colaborador){
-            dados_tratados = response.map(item => ({
-              x: formatDate(item.periodo, true),
-              y: (item.quantidade ?? item.media_movel.toFixed(1)) // Ou item.quantidade ou item.media_movel. Fica o que estiver preenchimento.
-            }))
-            setLigacoes([{id: 'Ligacoes', data: dados_tratados}]) // Insere os dados com o ID
-          } else {
-            // 1. Extrai todas as datas únicas presentes no conjunto (de todos os colaboradores)
-            const todasDatas = Array.from(new Set(response.map(item => item.periodo)))
-              .sort((a, b) => new Date(a) - new Date(b)) // ordena cronologicamente
-
-            // 2. Organiza os dados por colaborador como um mapa de data → valor
-            const resposta_formatada = {}
-            response.forEach(item => {
-              if (!resposta_formatada[item.colaborador]) {
-                resposta_formatada[item.colaborador] = {}
-              }
-              resposta_formatada[item.colaborador][item.periodo] =
-                (item.quantidade ?? item.media_movel).toFixed(1)
-            })
-            // 3. Para cada colaborador, cria uma série com todas as datas
-            const resposta_final = Object.entries(resposta_formatada).map(([colaborador, dataMap]) => {
-            const data = todasDatas
-              .map(dataISO => ({
-                x: formatDate(dataISO, true), // ainda usamos formatDate aqui
-                y: dataMap[dataISO] !== undefined ? dataMap[dataISO] : null,
-                originalDate: dataISO // guardamos a data real
-              }))
-              .sort((b, a) => new Date(a.originalDate) - new Date(b.originalDate)) // ordenamos pela data real
-            // Removemos o campo auxiliar antes de passar pro gráfico
-            return {
-              id: colaborador,
-              data: data.map(({ x, y }) => ({ x, y }))
-            }
-          })
-            setLigacoes(resposta_final)
-          }
-
-          // console.log(`Dados: ${JSON.stringify(dados_tratados)}`)
-        } catch(error){
+          ...(dataInicio && {inicio: dataInicio}),
+          ...(dataFim && {fim: dataFim}),
+          ...(diasAtivos && {dias: diasAtivos}),
+          ...(periodosEscolhidos && {periodos: periodosEscolhidos}),
+          ...(chamadorSelecionado && {chamadores: chamadorSelecionado}),
+          ...(tipoPeriodo && {tipo_periodo: tipoPeriodo}),
+          ...(agrupamento && {agrupamento: agrupamento}),
+          ...(calculo && {calculo: calculo}),
+          ...(status && {status: status}),
+          ...(periodoMediaMovel && {periodo_media_movel: periodoMediaMovel}),
+          ...(todosStatus && {todos_status: todosStatus}),
+          ...(porcentagemSobreSi && {porcentagem_sobre_si: porcentagemSobreSi}),
+          modo: 'linechart',
+        })
+            setLigacoes(response)
+          } catch(error){
           console.log(`O erro: ${error}`)
         }
       }
       PegaLigacoes()
-    }, [diasAtivos, chamadorSelecionado, calculo, periodoMediaMovel, tipoPeriodo, agrupamento, dataInicio, dataFim])
+    }, querystringsForLinechart)
 
 
     // groupp TOGGLES
@@ -246,7 +227,7 @@
     
     return (
       <div className='fundoMaximo min-h-screen h-full w-full bg-[#f1f1f7] flex'>
-        {/* // GROUPP SIDE BAR ------------------------------------------------------------- */}
+{/* // GROUPP SIDE BAR ------------------------------------------------------------- */}
         <div className="sideBar w-[clamp(200px,19vw,400px)] border-r-1 border-[#C9C9C9]  grid grid-cols-1 grid-rows-[auto_auto_1fr_auto]">
           <div className="logo px-10 py-8">
             <img src="https://syngoo.com.br/wp-content/uploads/2022/09/syngoo4.png" alt="" />
@@ -262,7 +243,7 @@
               </div>
             </div>
           </div>
-        {/* // GROUPP ITEMS MENU ------------------------------------------------------------- */}
+{/* // GROUPP ITEMS MENU ------------------------------------------------------------- */}
           <div className="menuItems">
             <nav className="mt-6">
               <ul className="space-y-2 px-8">
@@ -280,35 +261,25 @@
                 </li>
               </ul>
             </nav>
-            <div className="teste">
-              <h2 className='text-2xl font-bold'>Gerais</h2>
-                <p>inicio</p>
-                <p>fim</p>
-                <p>dias</p>
-                <p>periodos</p>
-                <p>chamadores</p>
-                <p>status</p>
-              <h2 className='text-2xl font-bold'>Linechart</h2>
-                <p>tipo_periodos</p>
-                <p>agrupamento</p>
-                <p>calculo</p>
-                <p>periodo_media_movel</p>
-                <p>todos_status</p>
-                <p>porcentagem_sobre_si</p>
-            </div>
           </div>
           <div className="sideBarDownMenu bg-purple-200">
           </div>
         </div>
-        {/* // GROUPP RIGHT CONTENT (MAIN CONTENT) ------------------------------------------------------------- */}
+{/* // GROUPP RIGHT CONTENT (MAIN CONTENT) ------------------------------------------------------------- */}
         <div className="rightContent w-[clamp(200px,81vw,100vw)] p-8 bg-linear-45 from-[#f1f1f7] to-[#f8f8ff]">
+          {/* {JSON.stringify(ligacoes)} */}
+          <p>----</p>
+          <p className='font-bold'>querystrings</p>
+          {JSON.stringify(querystringsLinechart)}
+          <p>----</p>
+          {JSON.stringify(status)}
           <div className="mainContentContainer h-full w-full">
             <div className="title mb-8">
               <h2 className='text-4xl font-bold'>PBX Interno da Syngoo</h2>
               <p>Sistema de ligações através de ramais e configurações avançadas.</p>
             </div>
 
-            {/* Page Filters */}
+{/* // GROUPP PAGE FILTERS *************************************** */}
             <h2 className='text-3xl font-bold'>Filtros de Página</h2>
             <div className="pageFiltersContainer relative w-full rounded-[4px] bg-gradient-to-tr from-[#c0c0c044] from-1% to-[#ebebeb87] to-80% px-4 pt-2 pb-4 shadow-[4px_4px_15px_#c9c9c922] mt-2">
                 <div className="content flex mt-2 gap-x-10 gap-y-4 mb-4 flex-wrap">
@@ -357,7 +328,7 @@
                         type="button"
                         onClick={() => setIsOpen(!isOpen)}
                         className="w-full font-medium rounded text-left bg-gray-100 shadow-sm px-4 py-2 cursor-pointer focus:ring-2 focus:outline-1 focus:ring-[#000e2533]0"
-                      >
+                        >
                         {chamadorSelecionado.length > 0
                           ? `Chamadores: ${chamadorSelecionado.join(", ")}`
                           : "Selecione colaboradores"}
@@ -366,15 +337,15 @@
                         <div className="absolute z-10 mt-2 w-full bg-[#fff9] backdrop-blur-[7px] rounded shadow-md max-h-[300px] overflow-y-auto">
                           {colaboradores.map((colaborador) => (
                             <label
-                              key={colaborador.id}
-                              className="flex items-center px-4 py-2 hover:bg-gradient-to-r text-[#222] from-[#fff0] to-[#000e2533] hover:text-black cursor-pointer"
+                            key={colaborador.id}
+                            className="flex items-center px-4 py-2 hover:bg-gradient-to-r text-[#222] from-[#fff0] to-[#000e2533] hover:text-black cursor-pointer"
                             >
                               <input
                                 type="checkbox"
                                 checked={chamadorSelecionado.includes(`${colaborador.primeiro_nome} ${colaborador.sobrenome}`)}
                                 onChange={() => toggleOption(`${colaborador.primeiro_nome} ${colaborador.sobrenome}`)}
                                 className="mr-2"
-                              />
+                                />
                               {`${colaborador.primeiro_nome} ${colaborador.sobrenome}`}
                             </label>
                           ))}
@@ -392,9 +363,11 @@
               </div>
             </div>
 
-            {/* groupp LineChart */}
+{/* // GROUPP LINECHART *************************************** */}
             <div className="lineChartCallsContainer mt-5">
-              <h3 className='text-2xl font-bold'>Ligações em Tempo Real</h3>
+              <h3 className='text-2xl font-bold'>
+                Ligações em Tempo Real
+              </h3>
               {/* from-[#e8e8ee] to-[#f2f2f8]  */}
               <div className="relative w-full rounded-[4px] bg-gradient-to-tr from-[#c0c0c044] from-1% to-[#ebebeb87] to-80% px-2 py-4 shadow-[4px_4px_15px_#c9c9c922] mt-2">
                 <div className="containerMasterFiltros flex gap-5">
@@ -419,7 +392,14 @@
                   </div>
                   <div className="containerTodosStatus">
                     <div className="containerBotaoTodosStatus">
-                      <BotaoOnOff valor='TODOS'/>
+                      <p className={`mb-1 font-semibold ${calculo !== 'porcentagem_status' ? 'text-[#0005]' : ''}`}>Todos os Status</p>
+                      <BotaoOnOff valor='TODOS' variavel={todosStatus} setadorVariavel={setTodosStatus} regraDeAtivacao={calculo == 'porcentagem_status'}/>
+                    </div>
+                  </div>
+                  <div className="containerTodosStatus">
+                    <div className="containerBotaoTodosStatus">
+                      <p className={`mb-1 font-semibold ${calculo !== 'porcentagem_status' ? 'text-[#0005]' : ''}`}>% Sobre Si</p>
+                      <BotaoOnOff valor='SOBRE SI' variavel={porcentagemSobreSi} setadorVariavel={setPorcentagemSobreSi} regraDeAtivacao={calculo == 'porcentagem_status'}/>
                     </div>
                   </div>
 

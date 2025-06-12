@@ -66,7 +66,7 @@ export async function GetLigacoes(filtros = {}) {
         return null;
     }
 }
-
+//127.0.0.1:8000/api/v1/pbx/ligacoes2/?inicio=2025-06-10&dias=2%2C3%2C0%2C1%2C4&periodos=manha&chamadores=Gabriel+Torres&tipo_periodo=dia&agrupamento=chamador&calculo=soma_total&periodo_media_movel=1&status=atendido&todos_status=true&porcentagem_sobre_si=true&modo=linechart 500 (Internal Server Error)
 // ? Exemplo funcional da consulta de dados de ligações
 // GetLigacoes({
 //     dias: [1, 2, 3, 4, 5, 6],
