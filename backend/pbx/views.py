@@ -1,7 +1,7 @@
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
-from django.db.models.functions import TruncDate, Concat, TruncMonth, TruncTime, ExtractHour, ExtractMinute, TruncYear, TruncWeek, TruncDay, ExtractIsoYear, ExtractMonth
-from django.db.models import Count, Value, CharField, Q, OuterRef, Subquery, DateField, When, Case, IntegerField
+from django.db.models.functions import TruncDate, Concat, TruncMonth, TruncTime, ExtractHour, ExtractMinute, TruncYear, TruncWeek, TruncDay, ExtractIsoYear, ExtractMonth, ExtractYear
+from django.db.models import Count, Value, CharField, Q, OuterRef, Subquery, DateField, When, Case, IntegerField, Func, F
 from rest_framework.response import Response
 from .serializers import ContatosPBXSerializer
 import pandas as pd
@@ -138,7 +138,7 @@ def gerar_dataframe_ligacoes(params, request):
         .filter(~Q(quem_recebeu_ligacao = 'h')) # filtra o que não foi ligação
         .annotate(
             ano=TruncYear('data_de_contato'),
-            ano_cod=ExtractIsoYear('data_de_contato'),
+            ano_cod=ExtractYear('data_de_contato'),
             mes=TruncMonth('data_de_contato'),
             mes_cod=ExtractMonth('data_de_contato'),
             semestre=Case(
@@ -396,7 +396,8 @@ def realizar_calculos(params, df_tratado, request):
         if groupby_usados:
             dados = dados.groupby(groupby_usados).size().reset_index(name='quantidade')
             # Caso ambos estejam presentes
-            if len(groupby_usados) == 2 or (len(groupby_usados) == 3 and 'ano_cod' in groupby_usados):
+            if (len(groupby_usados) == 2 and 'ano_cod' not in groupby_usados) or (len(groupby_usados) == 3 and 'ano_cod' in groupby_usados):
+                print(groupby_usados)
                 if 'ano_cod' in dados.columns:
                     dados['periodo_data'] = dados['ano_cod'].astype(str) + '.' + dados[periodo_desejado].astype(str)
                     dados = dados[[agrupamento, 'periodo_data', 'quantidade']].rename(columns={
@@ -422,10 +423,11 @@ def realizar_calculos(params, df_tratado, request):
                 dados = dados[['nome', 'periodo_data', 'quantidade']]
             # Caso especial para trimestre/semestre com ano_cod
             elif len(groupby_usados) == 2 and 'ano_cod' in groupby_usados:
+                print('chegou aqui ----------------------------------------------')
                 dados['periodo_data'] = dados['ano_cod'].astype(str) + '.' + dados[periodo_desejado].astype(str)
-                dados = dados[[agrupamento, 'periodo_data', 'quantidade']].rename(columns={
-                    agrupamento: 'nome'
-                })
+                dados['nome'] = 'Total'
+                dados = dados[['nome', 'periodo_data', 'quantidade']]
+                print('chegou aqui 2 ----------------------------------------------')
         else:
             # Caso não haja agrupamentos (ambos são nogroup) será criado um DF com o tamanho.
             dados = pd.DataFrame([{
@@ -565,13 +567,18 @@ def realizar_calculos(params, df_tratado, request):
 
     return dados
 
+
 def organizar_para_plotagem(params, df_final, modo):
+    """ 
+    ? Essa função irá organizar os dados recebidos para plotar corretamente. Os dados já virão organizados para o gráfico.
+    """
     resultado = []
+    # Caso o modo seja linechart ele organizará os gráficos para linhas
     if modo == 'linechart':
         df_final = pd.DataFrame(df_final)
         # Pad missing periods for all groups
         if not df_final.empty and 'nome' in df_final.columns and 'periodo_data' in df_final.columns:
-            df_final = pad_groups_with_periods(df_final, group_col='nome', period_col='periodo_data', value_col='quantidade')
+            df_final = preencher_periodos_vazios_com_none(df_final, group_col='nome', period_col='periodo_data', value_col='quantidade')
         # Replace NaN and inf with None for JSON compliance
         df_final = df_final.replace([np.nan, np.inf, -np.inf], None)
         for nome, grupo in df_final.groupby('nome'):
@@ -583,11 +590,39 @@ def organizar_para_plotagem(params, df_final, modo):
                 ]
             })
         return resultado
+
     df_final = pd.DataFrame(df_final)
     if not df_final.empty and 'nome' in df_final.columns and 'periodo_data' in df_final.columns:
-        df_final = pad_groups_with_periods(df_final, group_col='nome', period_col='periodo_data', value_col='quantidade')
+        df_final = preencher_periodos_vazios_com_none(df_final, group_col='nome', period_col='periodo_data', value_col='quantidade')
     df_final = df_final.replace([np.nan, np.inf, -np.inf], None)
     return df_final.to_dict(orient='records')
+
+def preencher_periodos_vazios_com_none(df, group_col='nome', period_col='periodo_data', value_col='quantidade'):
+    """
+    ? Pegará todas as combinações possíveis de grupos e periodos, fará que todos os grupos tenham todos periodos, preencherá None para os vazios.
+    """
+    if df.empty: # ! necessário?
+        return df
+    # Get all unique group and period values from the WHOLE DataFrame
+    # Faz uma lista só com os valores de 'nome' e 'periodo_data'
+    all_groups = df[group_col].drop_duplicates().tolist()
+    all_periods = sorted(df[period_col].drop_duplicates().tolist())
+
+    # Aqui é criado um índice "falso" com todas as combinações possíveis de periodos e grupos (nome)
+    idx = pd.MultiIndex.from_product([all_groups, all_periods], names=[group_col, period_col])
+    # Aqui é pego o df e cria-se um índice novo, juntando o grupo (nome) com periodo (periodo_data)
+    df = df.set_index([group_col, period_col])
+    # Aqui é pego os índices "falsos" onde cada grupo tem todos os períodos, pois foi criada todas as combinações possíveis, e é definido com novo índice de df. Logo depois disso é dado um reset_index, para que o index normal (numeral) volte e seja estabelecido um index normal novamente.
+    df = df.reindex(idx).reset_index()
+
+    # Há o valor (quantidade) entre as colunas?
+    if value_col in df.columns:
+        # Em valor (quantidade), onde não for vazio permanece o próprio valor, se for vazio se torna 'None'.
+        # ? O where é como um teste lógico seguido por um valor, que será aplicado quando o teste lógico der true.
+        df[value_col] = df[value_col].where(pd.notnull(df[value_col]), None)
+        # Ordenar os resultados
+        df = df.sort_values('periodo_data', ascending=True)
+    return df
 
 class Ligacoes2(APIView):
     def get(self, request):
@@ -602,196 +637,9 @@ class Ligacoes2(APIView):
 
         return Response(resultado)
 
-class Ligacoes(APIView):
-    # Para APIView você deve definir o método, portanto faça um def get ou um def post etc.
+class DadosBrutos(APIView):
     def get(self, request):
-        ### Os filtros gerais ficarão aqui
-        filtros = {}
+        params = extrair_params(request)
+        dados = gerar_dataframe_ligacoes(params, request)
 
-        ### Aqui é onde ficará o parâmetro passado no annotate, ou truncmonth ou truncdate
-        periodo = {}
-
-        ### Parte responsável pelo filtro de dias habilitados
-        # Caso não haja nenhum filtro de dias, todos os dias serão adicionados
-        dias_possiveis = request.GET.get('dias', '0,1,2,3,4,5,6') # Sábado é 0 e sexta é 6
-        # Se houver algo na variável dias_possiveis, ele irá adicionar todos na lista
-        if dias_possiveis:
-        # Transforma "2,3,4,5,6" em [2, 3, 4, 5, 6]
-        # É um List Comprehension, pois é pego o string, e tratado dentro de uma lista
-            dias_possiveis = [int(d) for d in dias_possiveis.split(',') if d.strip().isdigit()]
-
-        # Se houver dias selecionados ele insere isso no dic. de filtros
-        if dias_possiveis:
-            filtros['dia_da_semana__in'] = dias_possiveis
-
-        ### Parte responsável por filtrar os chamadores
-        chamadores = request.GET.get('chamadores') # Virá algo como 'Gabriel Torres, Aline Moreira'
-        chamadores = [c.strip() for c in chamadores.split(',')]
-
-        ### Parte responsável pelo modo
-        modo = request.GET.get('modo_y','ligacoes_totais') # media_movel || ligacoes_totais
-        media_movel_periodos = int(request.GET.get('periodo_media_movel',1))
-
-        ### Parte responsável pelos tipos de periodos
-        periodo_desejado = request.GET.get('tipo_periodo', 'dia') # dia ou mes
-
-        if periodo_desejado == 'dia':
-            periodo['periodo'] = TruncDate('data_de_contato')
-        elif periodo_desejado == 'mes':
-            periodo['periodo'] = TruncMonth('data_de_contato')
-
-        ### Parte responsavel por agrupamento por chamador
-        agrupa_por_chamador = request.GET.get('agrupamento_por_chamador',False) # bool
-        if agrupa_por_chamador:
-            # Se tiver algo, e o seu valor está na lista, ele fica true
-            agrupa_por_chamador = agrupa_por_chamador.lower() in ['true','1','sim']
-
-        ### Parte para períodos
-        periodo_inicial = request.GET.get('inicio','')
-        periodo_final = request.GET.get('fim','')
-            
-        # Adiciona periodo inicial
-        if periodo_inicial:
-            filtros['periodo__gte'] = periodo_inicial
-        # Adiciona periodo final
-        if periodo_final:
-            filtros['periodo__lte'] = periodo_final
-
-        ### Essa lista define sobre o que será agrupado a resposta toda
-        agrupamento_values = ['periodo']
-
-        # Se agrupa_por_chamador for verdadeiro, significa que o usuário quer que agrupe, então adicionar o 'chamador' na lista de agrupamento
-        if agrupa_por_chamador:
-            agrupamento_values.append('chamador')
-
-######## ! PARTE RESPONSÁVEL POR FILTRAR OS NOMES ERRADOS TODOS
-        # Só adicionamos o filtro de 'chamador' se a lista de chamadores não for vazia
-        if chamadores:
-            # Aqui pega as informações dos colaboradores e só insere um novo atributo = que é a junção de nome com o sobrenome
-            # Usando annotate ele adiciona a coluna 'nome_completo'
-            colaboradores_queryset = Colaboradores.objects.annotate(
-                # Usa a Concat pra juntar 'primeiro_nome' com 'sobrenome' e define a coluna como CharField
-                nome_completo=Concat(
-                    'primeiro_nome', Value(' '), 'sobrenome', output_field=CharField()
-                )
-            )
-            # Monta um filtro com OR para todos os nomes enviados
-            # O reduce vai iterando a função
-            # O Q é apenas uma forma de filtrar
-            # O or_ é o equivalente a dizer 'ou', é o ||
-            # Portanto a função abaixo faz o seguinte, para cada nome que está em chamadores ele verifica se contém em 'nome completo' que é o atributo novo da tabela de colaboradores, que foi criada antes.
-            filtro_nomes = reduce(
-                # List Comprehension criando uma lista com os nomes, porém adicionando apenas o nome_completo caso esteja em chamadores
-                or_, [Q(nome_completo__icontains=nome) for nome in chamadores]
-                # RESULTADO ESPERADO: [nome_completo_icontains='Gabriel Torres',nome_completo_icontains='Aline Moreira']
-                # Isso garante que teremos uma filtro que pedirá apenas os nomes que tinhamos escolhido
-            )
-
-            # Aplica o filtro criado no queryset de colaboradores
-            colaboradores = colaboradores_queryset.filter(filtro_nomes)
-            # RESULTADO ESPERADO: A entidade inteira de Colaboradores, porém filtrado somente os chamadores solicitados
-            # Com os colaboradores em mãos, busca os nomes errados mapeados
-            # Isso está olhando lá em alias, pegando tudo que tem nome errado na entidade de ligação
-            nomes_errados = ColaboradorEAliasChamador.objects.filter(
-                # Aqui é pego os ids dos colaboradores solicitados. Essa lista será usada para pegar todos os nomes errados
-                # Aqui já define-se o filtro pegando, no atributo de colaborador_id só os ids dos colaboradores solicitados
-                colaborador_id__in=colaboradores.values_list('id', flat=True)
-                # RESULTADO ESPERADO: Na entidade de Alias ele filtra só os ids dos Chamadores escolhidos
-            ).values_list('nome_errado', flat=True) # Agora, tendo a entidade de Alias filtrada só com os Colaboradores solicitados, faz uma lista com os nomes errados
-            # RESULTADO ESPERADO: ['nome_errado1','nome_errado2','nome_errado3'] <= De todos os colaboradores solicitados
-
-            # Agora sim: usa essa lista de nomes errados como filtro nas ligações
-            filtros['chamador__in'] = list(nomes_errados)
-            # Cria filtro com vários ORs usando Q
-            filtro_nomes = reduce(
-                or_, [Q(nome_completo__icontains=nome) for nome in chamadores]
-            )
-
-            # Aplica filtro ao queryset
-            colaboradores = colaboradores_queryset.filter(filtro_nomes)
-
-        # ! Aqui se criam os dados
-        dados = (
-            ContatosPBX.objects
-            .annotate(**periodo,
-                dia_da_semana=ExtractWeekDay('data_de_contato'))
-            .filter(~Q(quem_recebeu_ligacao='h'))
-            .values(*agrupamento_values)
-            .annotate(contatos=Count('*'))
-            .order_by('-periodo')
-            .filter(**filtros)
-        )
-
-        # Pega os dados e insere em um DF de Pandas
-        df = pd.DataFrame(dados)
-        df = df.sort_values(by=['periodo'])  # garante ordem correta
-
-        # Caso o modo seja ligações totais, ele já trará um retorno aqui, sem processar o resto
-        if modo == 'ligacoes_totais':
-            df = df.rename(columns={'contatos': 'quantidade'})
-            # 1. Mapeia nome errado para nome correto
-            if agrupa_por_chamador:
-                colaborador_map = {
-                    alias.nome_errado: f"{alias.colaborador.primeiro_nome} {alias.colaborador.sobrenome}"
-                    for alias in ColaboradorEAliasChamador.objects.select_related('colaborador').all()
-                }
-
-                # 2. Substitui nomes errados pelo nome correto no DataFrame
-                df['colaborador'] = df['chamador'].map(colaborador_map)
-                df = df.drop(columns=['chamador'])
-
-                # Agrupa de novo somando os contatos
-                df = df.groupby(['periodo', 'colaborador'], as_index=False).sum()
-
-            return Response(df.sort_values(by='periodo', ascending=False).to_dict(orient='records'))
-
-        if agrupa_por_chamador:
-            df['media_movel'] = (
-                df.groupby('chamador')['contatos']
-                .rolling(window=media_movel_periodos, min_periods=1)
-                .mean()
-                .reset_index(level=0, drop=True)
-            )
-        else:
-            df['media_movel'] = (
-                df['contatos']
-                .rolling(window=media_movel_periodos, min_periods=1)
-                .mean()
-            )
-        # Ordena resultado final por data decrescente
-        df = df.sort_values(by='periodo', ascending=False)
-        df = df.replace([np.nan, np.inf, -np.inf], None)
-
-        df = df.drop(columns=['contatos'])
-        if agrupa_por_chamador:
-            # 1. Mapeia nome errado para nome correto
-            colaborador_map = {
-                alias.nome_errado: f"{alias.colaborador.primeiro_nome} {alias.colaborador.sobrenome}"
-                for alias in ColaboradorEAliasChamador.objects.select_related('colaborador').all()
-            }
-
-            # 2. Substitui nomes errados pelo nome correto no DataFrame
-            df['colaborador'] = df['chamador'].map(colaborador_map)
-            df = df.drop(columns=['chamador'])
-
-        return Response(df.to_dict(orient='records'))
-
-def pad_groups_with_periods(df, group_col='nome', period_col='periodo_data', value_col='quantidade'):
-    """
-    Ensures all groups have all possible periods (from all groups), filling missing values with None.
-    """
-    if df.empty:
-        return df
-    # Get all unique group and period values from the WHOLE DataFrame
-    all_groups = df[group_col].drop_duplicates().tolist()
-    all_periods = sorted(df[period_col].drop_duplicates().tolist())
-    # Create a MultiIndex of all combinations
-    idx = pd.MultiIndex.from_product([all_groups, all_periods], names=[group_col, period_col])
-    df = df.set_index([group_col, period_col])
-    df = df.reindex(idx).reset_index()
-    # Fill missing value_col with None
-    if value_col in df.columns:
-        df[value_col] = df[value_col].where(pd.notnull(df[value_col]), None)
-    # Fill any other NaN with None
-    df = df.where(pd.notnull(df), None)
-    return df
+        return Response(dados.to_dict(orient='records'))

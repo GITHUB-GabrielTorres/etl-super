@@ -16,24 +16,7 @@
   import BotaoComSetas from './components/filters/BotaoComSetas/BotaoComSetas'
   import BotaoOnOff from './components/filters/BotaoOnOff/BotaoOnOff'
 
-  // Faixa no svg do gráfico
-  const FaixaHorizontal = ({ yScale, innerWidth }) => {
-    const y1 = yScale(50)
-    const y2 = yScale(0)
 
-    return (
-      <g>
-        <rect
-          x={0}
-          y={y1}
-          width={innerWidth}
-          height={y2 - y1}
-          fill="#ff000033" // vermelho com transparência
-        />
-      </g>
-    )
-  }
-  
   function App() {
     // groupp Dados linechart 
     const [ligacoes, setLigacoes] = useState([])
@@ -51,7 +34,6 @@
     const [status, setStatus] = useState(['atendido','ocupado','falha','sem resposta'])
     const [todosStatus, setTodosStatus] = useState(true)
     const [porcentagemSobreSi, setPorcentagemSobreSi] = useState(true)
-    const [querystringsLinechart, setQuerystringsLinechart] = useState('')
     
     // groupp Outros
     // Dropdown list
@@ -64,6 +46,14 @@
     const dropdownRef = useRef(null);
     // Usado para definir qual o Periodo Data está ativo
     const [indiceAtualPeriodoData, setIndiceAtualPeriodoData] = useState(1)
+    // Min. eixo linechart
+    const [minLinechart, setMinLinechart] = useState('auto')
+    // Max. eixo linechart
+    const [maxLinechart, setMaxLinechart] = useState('auto')
+    // Color for the down area in linechart
+    const [colorBelowAreaLinechart, setColorBelowAreaLinechart] = useState('#e3e3e3')
+    // Color for the down area in linechart
+    const [areaLimit, setAreaLimit] = useState('50')
 
 
 
@@ -95,51 +85,73 @@
       GetColaboradoresApp()
     }, [todosAtivos])
 
-    const querystringsForLinechart = [dataInicio, dataFim, diasAtivos, periodosEscolhidos, chamadorSelecionado, tipoPeriodo, agrupamento, calculo, periodoMediaMovel, status, todosStatus, porcentagemSobreSi]
+    // const querystringsForLinechart = [dataInicio, dataFim, diasAtivos, periodosEscolhidos, chamadorSelecionado, tipoPeriodo, agrupamento, calculo, periodoMediaMovel, status, todosStatus, porcentagemSobreSi]
 
-
-    // groupp useEffect para pegar as ligações
-    useEffect(() => {
-      // ? Função para pegar dados de ligação
-      async function PegaLigacoes(){
-        setQuerystringsLinechart({
-          ...(dataInicio && {inicio: dataInicio}),
-          ...(dataFim && {fim: dataFim}),
-          ...(diasAtivos && {dias: diasAtivos}),
-          ...(periodosEscolhidos && {periodos: periodosEscolhidos}),
-          ...(chamadorSelecionado && {chamadores: chamadorSelecionado}),
-          ...(tipoPeriodo && {tipo_periodo: tipoPeriodo}),
-          ...(agrupamento && {agrupamento: agrupamento}),
-          ...(calculo && {calculo: calculo}),
-          ...(status && {status: status}),
-          ...(periodoMediaMovel && {periodo_media_movel: periodoMediaMovel}),
-          ...(todosStatus && {todos_status: todosStatus}),
-          ...(porcentagemSobreSi && {porcentagem_sobre_si: porcentagemSobreSi}),
-          modo: 'linechart',
-        })
-        try{
-          const response = await GetLigacoes({
-          ...(dataInicio && {inicio: dataInicio}),
-          ...(dataFim && {fim: dataFim}),
-          ...(diasAtivos && {dias: diasAtivos}),
-          ...(periodosEscolhidos && {periodos: periodosEscolhidos}),
-          ...(chamadorSelecionado && {chamadores: chamadorSelecionado}),
-          ...(tipoPeriodo && {tipo_periodo: tipoPeriodo}),
-          ...(agrupamento && {agrupamento: agrupamento}),
-          ...(calculo && {calculo: calculo}),
-          ...(status && {status: status}),
-          ...(periodoMediaMovel && {periodo_media_movel: periodoMediaMovel}),
-          ...(todosStatus && {todos_status: todosStatus}),
-          ...(porcentagemSobreSi && {porcentagem_sobre_si: porcentagemSobreSi}),
-          modo: 'linechart',
-        })
-            setLigacoes(response)
-          } catch(error){
-          console.log(`O erro: ${error}`)
-        }
-      }
-      PegaLigacoes()
-    }, querystringsForLinechart)
+async function PegaLigacoes(){
+  setLigacoes([])
+  try{
+    const response = await GetLigacoes({
+    ...(dataInicio && {inicio: dataInicio}),
+    ...(dataFim && {fim: dataFim}),
+    ...(diasAtivos && {dias: diasAtivos}),
+    ...(periodosEscolhidos && {periodos: periodosEscolhidos}),
+    ...(chamadorSelecionado && {chamadores: chamadorSelecionado}),
+    ...(tipoPeriodo && {tipo_periodo: tipoPeriodo}),
+    ...(agrupamento && {agrupamento: agrupamento}),
+    ...(calculo && {calculo: calculo}),
+    ...(status && {status: status}),
+    ...(periodoMediaMovel && {periodo_media_movel: periodoMediaMovel}),
+    ...(todosStatus && {todos_status: todosStatus}),
+    ...(porcentagemSobreSi && {porcentagem_sobre_si: porcentagemSobreSi}),
+    modo: 'linechart',
+  })
+      setLigacoes(response)
+    } catch(error){
+    console.log(`O erro: ${error}`)
+  }
+}
+    // // groupp useEffect para pegar as ligações
+    // useEffect(() => {
+    //   // ? Função para pegar dados de ligação
+    //   async function PegaLigacoes(){
+    //     setQuerystringsLinechart({
+    //       ...(dataInicio && {inicio: dataInicio}),
+    //       ...(dataFim && {fim: dataFim}),
+    //       ...(diasAtivos && {dias: diasAtivos}),
+    //       ...(periodosEscolhidos && {periodos: periodosEscolhidos}),
+    //       ...(chamadorSelecionado && {chamadores: chamadorSelecionado}),
+    //       ...(tipoPeriodo && {tipo_periodo: tipoPeriodo}),
+    //       ...(agrupamento && {agrupamento: agrupamento}),
+    //       ...(calculo && {calculo: calculo}),
+    //       ...(status && {status: status}),
+    //       ...(periodoMediaMovel && {periodo_media_movel: periodoMediaMovel}),
+    //       ...(todosStatus && {todos_status: todosStatus}),
+    //       ...(porcentagemSobreSi && {porcentagem_sobre_si: porcentagemSobreSi}),
+    //       modo: 'linechart',
+    //     })
+    //     try{
+    //       const response = await GetLigacoes({
+    //       ...(dataInicio && {inicio: dataInicio}),
+    //       ...(dataFim && {fim: dataFim}),
+    //       ...(diasAtivos && {dias: diasAtivos}),
+    //       ...(periodosEscolhidos && {periodos: periodosEscolhidos}),
+    //       ...(chamadorSelecionado && {chamadores: chamadorSelecionado}),
+    //       ...(tipoPeriodo && {tipo_periodo: tipoPeriodo}),
+    //       ...(agrupamento && {agrupamento: agrupamento}),
+    //       ...(calculo && {calculo: calculo}),
+    //       ...(status && {status: status}),
+    //       ...(periodoMediaMovel && {periodo_media_movel: periodoMediaMovel}),
+    //       ...(todosStatus && {todos_status: todosStatus}),
+    //       ...(porcentagemSobreSi && {porcentagem_sobre_si: porcentagemSobreSi}),
+    //       modo: 'linechart',
+    //     })
+    //         setLigacoes(response)
+    //       } catch(error){
+    //       console.log(`O erro: ${error}`)
+    //     }
+    //   }
+    //   PegaLigacoes()
+    // }, querystringsForLinechart)
 
 
     // groupp TOGGLES
@@ -187,9 +199,9 @@
 
   // groupp Definições de informações
   const itemsBotaoAgrupamento = {
-    1: {placeholder: 'PERIODO', valor: 'periodo'},
-    2: {placeholder: 'STATUS', valor: 'status'},
-    3: {placeholder: 'CHAMADOR', valor: 'chamador'},
+    1: {placeholder: 'CHAMADOR', valor: 'chamador'},
+    2: {placeholder: 'PERIODO', valor: 'periodo'},
+    3: {placeholder: 'STATUS', valor: 'status'},
     4: {placeholder: 'HORA', valor: 'hora'},
     5: {placeholder: 'NENHUM', valor: 'nogroup'},
   }
@@ -223,8 +235,24 @@
     6: {placeholder: 'ANO', valor: 'ano'},
 }
 
+  // Faixa no svg do gráfico
+  const FaixaHorizontal = ({ yScale, innerWidth }) => {
+    const y1 = yScale(areaLimit ? areaLimit : 50)
+    const y2 = yScale(0)
 
-    
+    return (
+      <g>
+        <rect
+          x={0}
+          y={y1}
+          width={innerWidth}
+          height={y2 - y1}
+          fill={colorBelowAreaLinechart} // vermelho com transparência
+        />
+      </g>
+    )
+  }
+
     return (
       <div className='fundoMaximo min-h-screen h-full w-full bg-[#f1f1f7] flex'>
 {/* // GROUPP SIDE BAR ------------------------------------------------------------- */}
@@ -267,12 +295,11 @@
         </div>
 {/* // GROUPP RIGHT CONTENT (MAIN CONTENT) ------------------------------------------------------------- */}
         <div className="rightContent w-[clamp(200px,81vw,100vw)] p-8 bg-linear-45 from-[#f1f1f7] to-[#f8f8ff]">
-          {/* {JSON.stringify(ligacoes)} */}
+          {/* {JSON.stringify(ligacoes)}
           <p>----</p>
           <p className='font-bold'>querystrings</p>
           {JSON.stringify(querystringsLinechart)}
-          <p>----</p>
-          {JSON.stringify(status)}
+          <p>----</p> */}
           <div className="mainContentContainer h-full w-full">
             <div className="title mb-8">
               <h2 className='text-4xl font-bold'>PBX Interno da Syngoo</h2>
@@ -361,8 +388,13 @@
                   </div>
                 </div>
               </div>
+              <button className='
+              botao-dia-ativo cursor-pointer px-2 py-1 w-full transition duration-500 active:ease-[cubic-bezier(0,1.72,0,10.98)] border-1 border-white tracking-wider text-shadow-xs
+              bg-gradient-to-r from-[#57575766] to-[#5e5e5e66] hover:from-[#42424299] hover:to-[#96969699] hover:text-white! hover:shadow-lg!
+              active:from-[#00787499]! active:scale-99
+              text-[#fff]' onClick={PegaLigacoes}>PESQUISAR</button>
             </div>
-
+{/* bg-gradient-to-r from-blue-500 to-green-500 text-white px-4 py-2 rounded transition duration-500 hover:from-purple-500 hover:to-pink-500 */}
 {/* // GROUPP LINECHART *************************************** */}
             <div className="lineChartCallsContainer mt-5">
               <h3 className='text-2xl font-bold'>
@@ -402,12 +434,31 @@
                       <BotaoOnOff valor='SOBRE SI' variavel={porcentagemSobreSi} setadorVariavel={setPorcentagemSobreSi} regraDeAtivacao={calculo == 'porcentagem_status'}/>
                     </div>
                   </div>
-
-                </div>
-                
-
+                    <div className="inputMin">
+                      <p className={`mb-1 font-semibold`}>Mín.</p>
+                      <input className={`input-number-ativo h-9`} placeholder='auto' type="number" name="periodos_media_movel" id="periodos_media_movel" onChange={(e) => setMinLinechart(e.target.value)} />
+                    </div>
+                    <div className="inputMin">
+                      <p className={`mb-1 font-semibold`}>Máx.</p>
+                      <input className={`input-number-ativo h-9`} placeholder='auto' type="number" name="periodos_media_movel" id="periodos_media_movel" onChange={(e) => setMaxLinechart(e.target.value)} />
+                    </div>
+                    <div className="colorContainer flex-col">
+                      <p className={`mb-1 font-semibold`}>Cor de Área</p>
+                      <input
+                        id="colorPicker"
+                        type="color"
+                        value={colorBelowAreaLinechart}
+                        onChange={(e) => setColorBelowAreaLinechart(e.target.value)}
+                        className="w-full h-10 cursor-pointer hover:border-blue-400 transition-all duration-300"
+                      />
+                    </div>
+                    <div className="inputMin">
+                      <p className={`mb-1 font-semibold`}>Area Limit</p>
+                      <input className={`input-number-ativo h-9`} placeholder='20' type="number" name="periodos_media_movel" id="periodos_media_movel" onChange={(e) => setAreaLimit(e.target.value)} />
+                    </div>
+                </div>              
                 <div className='h-[400px]'>
-                  <ResponsiveLine 
+                  { ligacoes.length > 0 ? (<ResponsiveLine 
                   // Configs Gerais
                   data={ligacoes ? ligacoes : []}
                   layers={[
@@ -448,7 +499,7 @@
                   ]}
 
                   // Eixos
-                  yScale={{ type: 'linear', min: '0', max: 'auto', stacked: false, reverse: false }}
+                  yScale={{ type: 'linear', min: minLinechart ? minLinechart : 'auto', max: maxLinechart ? maxLinechart : 'auto', stacked: false, reverse: false }}
                   // AQUI entra o gradiente do site
                   defs={[
                     {
@@ -471,7 +522,7 @@
                   enableTouchCrosshair={true}
                   useMesh={true}
                   tooltip={Tooltip1}
-                  />
+                  />) : <p className='text-5xl'>Calculando</p>}
                 </div>
               </div>
             </div>
